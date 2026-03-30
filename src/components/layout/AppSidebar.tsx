@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { CreateProjectDialog } from '@/components/projects/CreateProjectDialog';
+import { CreateLabelDialog } from '@/components/labels/CreateLabelDialog';
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -34,6 +35,7 @@ export function AppSidebar() {
   const setSearchOpen = useUIStore((s) => s.setSearchOpen);
   const setQuickAddOpen = useUIStore((s) => s.setQuickAddOpen);
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+  const [labelDialogOpen, setLabelDialogOpen] = useState(false);
   const navigate = useNavigate();
 
   const mainNavItems = [
@@ -136,7 +138,14 @@ export function AppSidebar() {
           </SidebarGroup>
 
           <SidebarGroup>
-            <SidebarGroupLabel>Labels</SidebarGroupLabel>
+            <SidebarGroupLabel className="flex items-center justify-between">
+              <span>Labels</span>
+              {!collapsed && (
+                <button onClick={() => setLabelDialogOpen(true)} className="text-muted-foreground hover:text-foreground">
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {labels?.map((label) => (
@@ -187,6 +196,7 @@ export function AppSidebar() {
       </Sidebar>
 
       <CreateProjectDialog open={projectDialogOpen} onOpenChange={setProjectDialogOpen} />
+      <CreateLabelDialog open={labelDialogOpen} onOpenChange={setLabelDialogOpen} />
     </>
   );
 }

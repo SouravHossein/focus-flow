@@ -4,13 +4,49 @@ import { AppSidebar } from './AppSidebar';
 import { QuickAddDialog } from '@/components/tasks/QuickAddDialog';
 import { TaskDetailDrawer } from '@/components/tasks/TaskDetailDrawer';
 import { SearchDialog } from '@/components/search/SearchDialog';
+import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow';
 import { useUIStore } from '@/stores/ui-store';
+import { useAuth } from '@/contexts/AuthContext';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+
+function applyTheme(theme: string) {
+  document.documentElement.classList.remove('dark');
+  if (theme === 'dark') {
+    document.documentElement.classList.add('dark');
+  } else if (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.documentElement.classList.add('dark');
+  }
+}
 
 export function AppLayout() {
   const setQuickAddOpen = useUIStore((s) => s.setQuickAddOpen);
+  const { profile, refreshProfile } = useAuth();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Apply theme from profile on mount
+  useEffect(() => {
+    if (profile?.theme_preference) {
+      applyTheme(profile.theme_preference);
+    }
+  }, [profile?.theme_preference]);
+
+  // System theme listener
+  useEffect(() => {
+    if (profile?.theme_preference !== 'system') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = () => applyTheme('system');
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [profile?.theme_preference]);
+
+  // Check onboarding
+  useEffect(() => {
+    if (profile && !profile.onboarding_completed) {
+      setShowOnboarding(true);
+    }
+  }, [profile]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -23,6 +59,10 @@ export function AppLayout() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [setQuickAddOpen]);
+
+  if (showOnboarding) {
+    return <OnboardingFlow onComplete={() => setShowOnboarding(false)} />;
+  }
 
   return (
     <SidebarProvider>

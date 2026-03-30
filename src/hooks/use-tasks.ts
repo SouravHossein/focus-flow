@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
+import { getNextDueDate, type RecurringPattern } from '@/utils/recurring';
 
 type Task = Tables<'tasks'>;
 type TaskInsert = TablesInsert<'tasks'>;
@@ -56,6 +57,10 @@ export function useTasks(options?: {
         nextWeek.setDate(nextWeek.getDate() + 7);
         query = query.gte('due_date', today.toISOString()).lte('due_date', nextWeek.toISOString());
       }
+
+      // Filter out snoozed tasks (unless they're past snooze time)
+      const now = new Date().toISOString();
+      query = query.or(`snoozed_until.is.null,snoozed_until.lte.${now}`);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -116,9 +121,34 @@ export function useDeleteTask() {
 
 export function useToggleTask() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, completed }: { id: string; completed: boolean }) => {
+      // If completing, check if task is recurring
+      if (completed) {
+        const { data: task } = await supabase.from('tasks').select('*').eq('id', id).single();
+        if (task?.is_recurring && task?.recurring_pattern) {
+          const pattern = task.recurring_pattern as unknown as RecurringPattern;
+          const nextDue = getNextDueDate(task.due_date, pattern);
+          // Create next occurrence
+          if (user) {
+            await supabase.from('tasks').insert({
+              title: task.title,
+              description: task.description,
+              priority: task.priority,
+              project_id: task.project_id,
+              section_id: task.section_id,
+              user_id: user.id,
+              is_recurring: true,
+              recurring_pattern: task.recurring_pattern,
+              due_date: nextDue,
+              position: task.position,
+            });
+          }
+        }
+      }
+
       const { data, error } = await supabase
         .from('tasks')
         .update({ completed_at: completed ? new Date().toISOString() : null })
@@ -127,6 +157,58 @@ export function useToggleTask() {
         .single();
       if (error) throw error;
       return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+  });
+}
+
+export function useDuplicateTask() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (taskId: string) => {
+      if (!user) throw new Error('Not authenticated');
+      const { data: original } = await supabase.from('tasks').select('*').eq('id', taskId).single();
+      if (!original) throw new Error('Task not found');
+      const { data, error } = await supabase.from('tasks').insert({
+        title: `${original.title} (copy)`,
+        description: original.description,
+        priority: original.priority,
+        due_date: original.due_date,
+        project_id: original.project_id,
+        section_id: original.section_id,
+        user_id: user.id,
+        is_recurring: original.is_recurring,
+        recurring_pattern: original.recurring_pattern,
+      }).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+  });
+}
+
+export function useSnoozeTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, until }: { id: string; until: string | null }) => {
+      const { error } = await supabase.from('tasks').update({ snoozed_until: until }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+  });
+}
+
+export function useReorderTasks() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (tasks: { id: string; position: number }[]) => {
+      await Promise.all(
+        tasks.map((t) => supabase.from('tasks').update({ position: t.position }).eq('id', t.id))
+      );
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
   });

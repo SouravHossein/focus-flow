@@ -1,15 +1,21 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { useTasks } from '@/hooks/use-tasks';
+import { useProjects } from '@/hooks/use-projects';
+import { useLabels } from '@/hooks/use-labels';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
+import { Download } from 'lucide-react';
 
 export default function SettingsPage() {
   const { user, profile, signOut, refreshProfile } = useAuth();
+  const { data: allTasks } = useTasks({ includeCompleted: true });
+  const { data: projects } = useProjects();
+  const { data: labels } = useLabels();
   const { toast } = useToast();
   const [theme, setTheme] = useState(profile?.theme_preference || 'system');
   const [dateFormat, setDateFormat] = useState(profile?.date_format || 'MMM d, yyyy');
@@ -46,6 +52,41 @@ export default function SettingsPage() {
       await refreshProfile();
       toast({ title: 'Settings saved' });
     }
+  };
+
+  const exportData = (format: 'json' | 'csv') => {
+    const data = {
+      tasks: allTasks || [],
+      projects: projects || [],
+      labels: labels || [],
+      exportedAt: new Date().toISOString(),
+    };
+
+    if (format === 'json') {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `taskflow-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const tasks = data.tasks;
+      const headers = ['title', 'description', 'priority', 'due_date', 'completed_at', 'project_id', 'created_at'];
+      const csvRows = [headers.join(',')];
+      tasks.forEach((t: any) => {
+        csvRows.push(headers.map((h) => `"${(t[h] || '').toString().replace(/"/g, '""')}"`).join(','));
+      });
+      const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `taskflow-tasks-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    toast({ title: `Data exported as ${format.toUpperCase()}` });
   };
 
   return (
@@ -105,6 +146,25 @@ export default function SettingsPage() {
                   <SelectItem value="6">Saturday</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Data</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">Export your tasks, projects, and labels</p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportData('json')}>
+                <Download className="h-3.5 w-3.5" />
+                Export JSON
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportData('csv')}>
+                <Download className="h-3.5 w-3.5" />
+                Export CSV
+              </Button>
             </div>
           </CardContent>
         </Card>

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useUpdateTask, useDeleteTask, useTasks } from '@/hooks/use-tasks';
+import { useUpdateTask, useDeleteTask, useTasks, useDuplicateTask, useSnoozeTask } from '@/hooks/use-tasks';
 import { useProjects } from '@/hooks/use-projects';
+import { useLabels } from '@/hooks/use-labels';
+import { useAddTaskLabel, useRemoveTaskLabel } from '@/hooks/use-task-labels';
 import { useUIStore } from '@/stores/ui-store';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -9,14 +11,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Checkbox } from '@/components/ui/checkbox';
 import { TaskCheckbox } from './TaskCheckbox';
 import { TaskList } from './TaskList';
 import { useToggleTask, useCreateTask } from '@/hooks/use-tasks';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { CalendarIcon, Trash2, Plus } from 'lucide-react';
+import { format, addDays, addWeeks } from 'date-fns';
+import { CalendarIcon, Trash2, Plus, Copy, Clock, Repeat } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { RECURRING_OPTIONS, getRecurringLabel, type RecurringPattern } from '@/utils/recurring';
+import type { Tables } from '@/integrations/supabase/types';
 
 export function TaskDetailDrawer() {
   const taskId = useUIStore((s) => s.taskDetailId);
@@ -25,8 +30,13 @@ export function TaskDetailDrawer() {
   const deleteTask = useDeleteTask();
   const toggleTask = useToggleTask();
   const createSubtask = useCreateTask();
+  const duplicateTask = useDuplicateTask();
+  const snoozeTask = useSnoozeTask();
   const { data: projects } = useProjects();
+  const { data: labels } = useLabels();
   const { data: subtasks, isLoading: subtasksLoading } = useTasks({ parentTaskId: taskId || undefined });
+  const addTaskLabel = useAddTaskLabel();
+  const removeTaskLabel = useRemoveTaskLabel();
   const { toast } = useToast();
 
   const [task, setTask] = useState<any>(null);
@@ -36,10 +46,12 @@ export function TaskDetailDrawer() {
   const [projectId, setProjectId] = useState<string>('');
   const [dueDate, setDueDate] = useState<Date | undefined>();
   const [newSubtask, setNewSubtask] = useState('');
+  const [recurringPattern, setRecurringPattern] = useState<string>('none');
+  const [taskLabels, setTaskLabels] = useState<string[]>([]);
 
   useEffect(() => {
     if (!taskId) return;
-    supabase.from('tasks').select('*').eq('id', taskId).single().then(({ data }) => {
+    supabase.from('tasks').select('*, task_labels(label_id)').eq('id', taskId).single().then(({ data }) => {
       if (data) {
         setTask(data);
         setTitle(data.title);
@@ -47,12 +59,24 @@ export function TaskDetailDrawer() {
         setPriority(data.priority);
         setProjectId(data.project_id || '');
         setDueDate(data.due_date ? new Date(data.due_date) : undefined);
+        const rp = data.recurring_pattern as RecurringPattern | null;
+        if (rp) {
+          const match = RECURRING_OPTIONS.findIndex(
+            (o) => o.value?.frequency === rp.frequency && o.value?.interval === rp.interval
+          );
+          setRecurringPattern(match > 0 ? String(match) : 'none');
+        } else {
+          setRecurringPattern('none');
+        }
+        setTaskLabels((data.task_labels as any[])?.map((tl: any) => tl.label_id) || []);
       }
     });
   }, [taskId]);
 
   const handleSave = async () => {
     if (!taskId) return;
+    const rpIndex = Number(recurringPattern);
+    const rp = recurringPattern !== 'none' && !isNaN(rpIndex) ? RECURRING_OPTIONS[rpIndex]?.value : null;
     await updateTask.mutateAsync({
       id: taskId,
       title: title.trim(),
@@ -60,6 +84,8 @@ export function TaskDetailDrawer() {
       priority,
       project_id: projectId || null,
       due_date: dueDate?.toISOString() || null,
+      is_recurring: !!rp,
+      recurring_pattern: rp as any,
     });
     toast({ title: 'Task updated' });
   };
@@ -69,6 +95,30 @@ export function TaskDetailDrawer() {
     await deleteTask.mutateAsync(taskId);
     setTaskDetailId(null);
     toast({ title: 'Task deleted' });
+  };
+
+  const handleDuplicate = async () => {
+    if (!taskId) return;
+    await duplicateTask.mutateAsync(taskId);
+    toast({ title: 'Task duplicated' });
+  };
+
+  const handleSnooze = async (until: Date) => {
+    if (!taskId) return;
+    await snoozeTask.mutateAsync({ id: taskId, until: until.toISOString() });
+    setTaskDetailId(null);
+    toast({ title: `Snoozed until ${format(until, 'MMM d')}` });
+  };
+
+  const handleToggleLabel = async (labelId: string) => {
+    if (!taskId) return;
+    if (taskLabels.includes(labelId)) {
+      await removeTaskLabel.mutateAsync({ taskId, labelId });
+      setTaskLabels((prev) => prev.filter((id) => id !== labelId));
+    } else {
+      await addTaskLabel.mutateAsync({ taskId, labelId });
+      setTaskLabels((prev) => [...prev, labelId]);
+    }
   };
 
   const handleAddSubtask = async (e: React.FormEvent) => {
@@ -170,11 +220,49 @@ export function TaskDetailDrawer() {
                 </Select>
               </div>
 
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                  <Repeat className="h-3.5 w-3.5" />
+                  Recurring
+                </span>
+                <Select value={recurringPattern} onValueChange={setRecurringPattern}>
+                  <SelectTrigger className="h-8 w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {RECURRING_OPTIONS.filter((o) => o.value).map((o, i) => (
+                      <SelectItem key={o.label} value={String(RECURRING_OPTIONS.indexOf(o))}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <Button variant="outline" size="sm" className="w-full" onClick={handleSave} disabled={updateTask.isPending}>
                 Save changes
               </Button>
             </div>
 
+            {/* Labels */}
+            {labels && labels.length > 0 && (
+              <div className="border-t pt-4">
+                <h4 className="mb-2 text-sm font-medium">Labels</h4>
+                <div className="space-y-1.5">
+                  {labels.map((label) => (
+                    <label key={label.id} className="flex items-center gap-2 cursor-pointer text-sm py-1">
+                      <Checkbox
+                        checked={taskLabels.includes(label.id)}
+                        onCheckedChange={() => handleToggleLabel(label.id)}
+                      />
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: label.color }} />
+                      <span>{label.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Subtasks */}
             <div className="border-t pt-4">
               <h4 className="mb-2 text-sm font-medium">Subtasks</h4>
               <TaskList tasks={subtasks} loading={subtasksLoading} emptyTitle="No subtasks" emptyDescription="Break this task into smaller steps" />
@@ -191,7 +279,35 @@ export function TaskDetailDrawer() {
               </form>
             </div>
 
-            <div className="border-t pt-4">
+            {/* Actions */}
+            <div className="border-t pt-4 space-y-2">
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="flex-1 gap-1.5" onClick={handleDuplicate}>
+                  <Copy className="h-3.5 w-3.5" />
+                  Duplicate
+                </Button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="flex-1 gap-1.5">
+                      <Clock className="h-3.5 w-3.5" />
+                      Snooze
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-2" align="end">
+                    <div className="space-y-1">
+                      <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleSnooze(addDays(new Date(), 1))}>
+                        Tomorrow
+                      </Button>
+                      <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleSnooze(addDays(new Date(), 3))}>
+                        In 3 days
+                      </Button>
+                      <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleSnooze(addWeeks(new Date(), 1))}>
+                        Next week
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
               <Button variant="destructive" size="sm" className="w-full gap-1.5" onClick={handleDelete}>
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete task
