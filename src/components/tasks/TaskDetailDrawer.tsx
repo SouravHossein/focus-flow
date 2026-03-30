@@ -59,7 +59,7 @@ export function TaskDetailDrawer() {
         setPriority(data.priority);
         setProjectId(data.project_id || '');
         setDueDate(data.due_date ? new Date(data.due_date) : undefined);
-        const rp = data.recurring_pattern as RecurringPattern | null;
+        const rp = data.recurring_pattern as unknown as RecurringPattern | null;
         if (rp) {
           const match = RECURRING_OPTIONS.findIndex(
             (o) => o.value?.frequency === rp.frequency && o.value?.interval === rp.interval
