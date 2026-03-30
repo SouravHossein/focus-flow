@@ -1,6 +1,23 @@
+import { useState, useCallback } from 'react';
 import { TaskItem } from './TaskItem';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Inbox } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Inbox, CheckSquare, Trash2, ArrowRight } from 'lucide-react';
+import { useToggleTask, useDeleteTask, useReorderTasks } from '@/hooks/use-tasks';
+import { useToast } from '@/hooks/use-toast';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Task = Tables<'tasks'> & {
@@ -15,6 +32,45 @@ interface TaskListProps {
 }
 
 export function TaskList({ tasks, loading, emptyTitle, emptyDescription }: TaskListProps) {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const toggleTask = useToggleTask();
+  const deleteTask = useDeleteTask();
+  const reorderTasks = useReorderTasks();
+  const { toast } = useToast();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !tasks) return;
+
+    const oldIndex = tasks.findIndex((t) => t.id === active.id);
+    const newIndex = tasks.findIndex((t) => t.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(tasks, oldIndex, newIndex);
+    const updates = reordered.map((t, i) => ({ id: t.id, position: i }));
+    reorderTasks.mutate(updates);
+  }, [tasks, reorderTasks]);
+
+  const handleBulkComplete = async () => {
+    for (const id of selectedIds) {
+      await toggleTask.mutateAsync({ id, completed: true });
+    }
+    toast({ title: `${selectedIds.size} task(s) completed` });
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkDelete = async () => {
+    for (const id of selectedIds) {
+      await deleteTask.mutateAsync(id);
+    }
+    toast({ title: `${selectedIds.size} task(s) deleted` });
+    setSelectedIds(new Set());
+  };
+
   if (loading) {
     return (
       <div className="space-y-2 p-4">
@@ -46,10 +102,55 @@ export function TaskList({ tasks, loading, emptyTitle, emptyDescription }: TaskL
   }
 
   return (
-    <div className="divide-y divide-border/50">
-      {tasks.map((task) => (
-        <TaskItem key={task.id} task={task} />
-      ))}
+    <div>
+      {/* Bulk actions toolbar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-2 px-3 py-2 mb-2 rounded-lg bg-muted/60 border">
+          <span className="text-sm font-medium">{selectedIds.size} selected</span>
+          <div className="flex-1" />
+          <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={handleBulkComplete}>
+            <CheckSquare className="h-3.5 w-3.5" /> Complete
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs text-destructive" onClick={handleBulkDelete}>
+            <Trash2 className="h-3.5 w-3.5" /> Delete
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+            Clear
+          </Button>
+        </div>
+      )}
+
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+          <div className="divide-y divide-border/50">
+            {tasks.map((task) => (
+              <div key={task.id} className="flex items-start">
+                <label
+                  className="mt-3 ml-1 shrink-0 cursor-pointer"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5 rounded border-muted-foreground/40 accent-primary"
+                    checked={selectedIds.has(task.id)}
+                    onChange={() => {
+                      setSelectedIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(task.id)) next.delete(task.id);
+                        else next.add(task.id);
+                        return next;
+                      });
+                    }}
+                  />
+                </label>
+                <div className="flex-1 min-w-0">
+                  <TaskItem task={task} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }

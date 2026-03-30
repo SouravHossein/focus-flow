@@ -16,6 +16,7 @@ import UpcomingPage from "./pages/Upcoming";
 import ProjectPage from "./pages/Project";
 import DashboardPage from "./pages/Dashboard";
 import SettingsPage from "./pages/Settings";
+import LabelFilterPage from "./pages/LabelFilter";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="today" element={<TodayPage />} />
               <Route path="upcoming" element={<UpcomingPage />} />
               <Route path="project/:projectId" element={<ProjectPage />} />
+              <Route path="label/:labelId" element={<LabelFilterPage />} />
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
