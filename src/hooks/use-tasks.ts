@@ -14,6 +14,8 @@ export function useTasks(options?: {
   inboxOnly?: boolean;
   dueToday?: boolean;
   dueUpcoming?: boolean;
+  dueOverdue?: boolean;
+  completedOnly?: boolean;
   includeCompleted?: boolean;
 }) {
   const { user } = useAuth();
