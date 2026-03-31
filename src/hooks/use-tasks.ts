@@ -42,7 +42,9 @@ export function useTasks(options?: {
       if (options?.inboxOnly) {
         query = query.is('project_id', null);
       }
-      if (!options?.includeCompleted) {
+      if (options?.completedOnly) {
+        query = query.not('completed_at', 'is', null);
+      } else if (!options?.includeCompleted) {
         query = query.is('completed_at', null);
       }
       if (options?.dueToday) {
