@@ -61,6 +61,10 @@ export function useTasks(options?: {
         nextWeek.setDate(nextWeek.getDate() + 7);
         query = query.gte('due_date', today.toISOString()).lte('due_date', nextWeek.toISOString());
       }
+      if (options?.dueOverdue) {
+        const now = new Date().toISOString();
+        query = query.lt('due_date', now).is('completed_at', null);
+      }
 
       // Filter out snoozed tasks (unless they're past snooze time)
       const now = new Date().toISOString();
