@@ -2,148 +2,79 @@
 
 # TaskFlow — Remaining Features Implementation Plan
 
-## What's Already Built
-- Auth (signup, login, logout, password reset, protected routes, profile auto-creation)
-- Task CRUD (create, complete, delete, update, subtasks)
-- Projects (create, delete, color picker, project view)
-- Labels hook (CRUD), displayed in sidebar and on tasks
-- Quick Add dialog with keyboard shortcut (Q)
-- Search dialog (Cmd+K) with debounced search
-- Task detail drawer (priority, due date, project, subtasks)
+## Current State Assessment
+
+### Fully Implemented
+- Email auth (signup, login, logout, password reset, protected routes)
+- Task CRUD with priorities, due dates, descriptions, subtasks
+- Projects (create, edit, archive/restore, delete, sections, color picker)
+- Labels (create dialog, assign in drawer, label filter page)
+- Drag-and-drop reorder (@dnd-kit)
+- Recurring tasks (daily/weekly/monthly, auto-create next on complete)
+- Inline editing (double-click title), duplicate, snooze
+- Bulk actions (complete, delete)
+- Quick Add (Q shortcut), Search (Cmd+K)
 - Smart views: Inbox, Today, Upcoming
-- Dashboard (basic stats cards, project progress bars)
-- Settings (theme, date format, week start, sign out)
-- Warm design system with light/dark themes
+- Dashboard with Recharts (completion trend, priority pie, streaks, overdue list)
+- Onboarding flow (theme, first project, first task)
+- Theme persistence on load + system listener
+- Settings (theme, date format, week start, data export JSON/CSV)
+- Mobile FAB, skeleton loaders, empty states
 
-## What's Missing (Grouped by Priority)
+### Not Implemented (New in This Request)
+1. **Landing page** for unauthenticated users (currently redirects straight to /auth)
+2. **Google OAuth** sign-in
+3. **Saved filters UI** (DB table exists, no UI)
+4. **Reminders/notifications** (no DB table, no UI)
+5. **Pomodoro/focus timer**
+6. **Task comments/notes** section
+7. **Task activity log**
+8. **Overdue & Completed smart views** (only Inbox/Today/Upcoming exist)
+9. **Notification preferences** in Settings
+10. **Account deletion**
 
-### 1. Label Management UI
-- Create label dialog (name + color picker) — sidebar has labels listed but no way to create/delete them
-- Label filter view page (`/app/label/:labelId`) — sidebar links to it but route doesn't exist
-- Assign/remove labels from tasks in the task detail drawer
-
-### 2. Drag-and-Drop Task Reordering
-- Install `@dnd-kit/core` and `@dnd-kit/sortable`
-- Wrap TaskList with DndContext + SortableContext
-- Make TaskItem draggable, persist position changes via `useUpdateTask`
-
-### 3. Recurring Tasks
-- Add recurring task UI in QuickAddDialog and TaskDetailDrawer (daily/weekly/monthly/custom)
-- When completing a recurring task, auto-create the next occurrence using the `recurring_pattern` JSONB field
-- Utility function for computing next due date from pattern
-
-### 4. Bulk Actions
-- Add multi-select mode to TaskList (checkboxes)
-- Bulk complete, delete, move to project, change priority
-- Selection toolbar that appears when tasks are selected
-
-### 5. Inline Task Editing
-- Click task title in list to edit inline (not just in drawer)
-- Auto-save on blur or Enter
-
-### 6. Duplicate & Snooze Task
-- "Duplicate" button in task detail drawer
-- "Snooze until..." with date picker using `snoozed_until` column (already in DB)
-- Filter out snoozed tasks from Today/Inbox views
-
-### 7. Project Edit & Archive
-- Edit project name/color dialog
-- Archive project (set `archived_at`), show in separate "Archived" section
-- Restore archived project
-
-### 8. Dashboard Enhancements
-- Completion trend chart (last 7 days) using Recharts
-- Priority distribution pie/bar chart
-- Completion streak calculation
-- "What needs attention" section with overdue tasks list
-
-### 9. Onboarding Flow
-- First-time onboarding after signup (check `onboarding_completed` on profile)
-- Step 1: Choose theme (light/dark)
-- Step 2: Create first project
-- Step 3: Add first task
-- Mark `onboarding_completed = true` when done
-
-### 10. Dark Mode Application on Load
-- Apply theme from profile on app load (currently only applies on settings save)
-- System theme listener for `system` preference
-
-### 11. Keyboard Shortcuts
-- `Escape` to close any open dialog/drawer
-- Arrow keys for task navigation (stretch)
-
-### 12. Notifications / Reminders (Architecture)
-- DB table: `reminders` (task_id, remind_at, dismissed)
-- Migration to create table with RLS
-- UI: Set reminder in task detail drawer
-- In-app notification bell with pending reminders
-- Browser Notification API permission + trigger
-
-### 13. Data Export
-- Settings page: Export all tasks as JSON or CSV
-- Simple client-side generation and download
-
-### 14. Saved Filters UI
-- Create/manage saved filters (the DB table exists but no UI)
-- Filter sidebar section with saved filter list
-- Filter builder: combine project, label, priority, date range, completion status
-
-### 15. Sections within Projects
-- Add/manage sections in project view (the DB table exists)
-- Group tasks by section
-- Add tasks to specific sections
+### Partially Implemented
+- **Bulk actions**: Only complete/delete — missing "move to project" and "change priority"
+- **Onboarding**: Missing "productivity style" choice (only has theme/project/task)
+- **Keyboard shortcuts**: Only Q and Cmd+K — no Escape-to-close, no arrow nav
+- **Sort options**: No sort UI (only position-based ordering)
 
 ---
 
-## Implementation Order (4 batches)
+## Implementation Plan
 
-**Batch 1 — Core Missing Features** (highest impact)
-1. Label management UI + label filter page + assign labels in drawer
-2. Dark mode on load + onboarding flow
-3. Drag-and-drop task reordering
-4. Recurring tasks logic
+### Batch 1: Landing Page + Google OAuth (High Priority)
 
-**Batch 2 — Power User Features**
-5. Inline editing, duplicate, snooze
-6. Bulk actions
-7. Project edit/archive/restore
-8. Sections within projects
+**1. Landing page** (`src/pages/Landing.tsx`)
+- Hero section with tagline, feature highlights, CTA buttons (Sign up / Log in)
+- Warm design matching the app's aesthetic
+- Update `Index.tsx` to show Landing for unauthenticated users instead of redirecting to `/auth`
 
-**Batch 3 — Analytics & Productivity**
-9. Dashboard charts (Recharts) + streaks
-10. Reminders table + in-app notification center
-11. Saved filters UI
+**2. Google OAuth**
+- Use Lovable Cloud managed Google OAuth (no API keys needed)
+- Add "Sign in with Google" button to Auth page
+- Use `lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin })`
+- Run the Configure Social Auth tool to generate the lovable module
 
-**Batch 4 — Polish**
-12. Data export (JSON/CSV)
-13. Keyboard navigation enhancements
-14. Additional empty states and loading polish
+### Batch 2: Smart Views + Saved Filters
 
-### DB Changes Needed
-- New `reminders` table with RLS (for batch 3)
-- No other schema changes — `sections`, `snoozed_until`, `recurring_pattern`, `saved_filters` already exist
+**3. Overdue & Completed views** — New pages at `/app/overdue` and `/app/completed`
+- Add `dueOverdue` and `completedOnly` options to `useTasks`
+- Add sidebar nav items
+- Routes in App.tsx
 
-### New Dependencies
-- `@dnd-kit/core`, `@dnd-kit/sortable` (drag-and-drop)
-- `recharts` (dashboard charts)
+**4. Saved filters UI**
+- Filter builder dialog (project, label, priority, date range, status)
+- Save/delete filters using existing `saved_filters` table
+- `useSavedFilters` hook
+- Sidebar section listing saved filters
+- Filter results page
 
-### New Files (Batch 1)
-- `src/components/labels/CreateLabelDialog.tsx`
-- `src/components/labels/LabelManager.tsx`
-- `src/pages/LabelFilter.tsx`
-- `src/components/onboarding/OnboardingFlow.tsx`
-- `src/utils/recurring.ts` (next-date calculation)
-- Route for `/app/label/:labelId` in App.tsx
+### Batch 3: Reminders + Notifications
 
-### Modified Files (Batch 1)
-- `src/App.tsx` — add label route, onboarding check
-- `src/components/layout/AppSidebar.tsx` — add create label button
-- `src/components/tasks/TaskDetailDrawer.tsx` — label assignment, recurring UI
-- `src/components/tasks/TaskList.tsx` — DnD wrapper
-- `src/components/tasks/TaskItem.tsx` — sortable wrapper
-- `src/hooks/use-tasks.ts` — filter snoozed, recurring completion logic
-- `src/components/layout/AppLayout.tsx` — theme application on mount
-- `src/pages/Dashboard.tsx` — Recharts integration (batch 3)
-
-This plan covers all unimplemented features from the original spec. I recommend approving Batch 1 first, then iterating.
-
+**5. Reminders table** — New migration:
+- `reminders` table (id, task_id, user_id, remind_at, dismissed, created_at) with RLS
+- `useReminders` hook
+- Set reminder UI in TaskDetailDrawer (date/time picker)
+- In-app notification bell in header showing pending reminders
+- Browser Notification API integration (request permission, trigger on
