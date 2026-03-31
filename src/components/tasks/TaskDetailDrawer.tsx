@@ -3,6 +3,7 @@ import { useUpdateTask, useDeleteTask, useTasks, useDuplicateTask, useSnoozeTask
 import { useProjects } from '@/hooks/use-projects';
 import { useLabels } from '@/hooks/use-labels';
 import { useAddTaskLabel, useRemoveTaskLabel } from '@/hooks/use-task-labels';
+import { useCreateReminder } from '@/hooks/use-reminders';
 import { useUIStore } from '@/stores/ui-store';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -14,10 +15,11 @@ import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { TaskCheckbox } from './TaskCheckbox';
 import { TaskList } from './TaskList';
+import { TaskComments } from './TaskComments';
 import { useToggleTask, useCreateTask } from '@/hooks/use-tasks';
 import { cn } from '@/lib/utils';
-import { format, addDays, addWeeks } from 'date-fns';
-import { CalendarIcon, Trash2, Plus, Copy, Clock, Repeat } from 'lucide-react';
+import { format, addDays, addWeeks, addHours } from 'date-fns';
+import { CalendarIcon, Trash2, Plus, Copy, Clock, Repeat, Bell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { RECURRING_OPTIONS, getRecurringLabel, type RecurringPattern } from '@/utils/recurring';
@@ -32,6 +34,7 @@ export function TaskDetailDrawer() {
   const createSubtask = useCreateTask();
   const duplicateTask = useDuplicateTask();
   const snoozeTask = useSnoozeTask();
+  const createReminder = useCreateReminder();
   const { data: projects } = useProjects();
   const { data: labels } = useLabels();
   const { data: subtasks, isLoading: subtasksLoading } = useTasks({ parentTaskId: taskId || undefined });
@@ -108,6 +111,12 @@ export function TaskDetailDrawer() {
     await snoozeTask.mutateAsync({ id: taskId, until: until.toISOString() });
     setTaskDetailId(null);
     toast({ title: `Snoozed until ${format(until, 'MMM d')}` });
+  };
+
+  const handleSetReminder = async (remindAt: Date) => {
+    if (!taskId) return;
+    await createReminder.mutateAsync({ taskId, remindAt: remindAt.toISOString() });
+    toast({ title: `Reminder set for ${format(remindAt, 'MMM d, h:mm a')}` });
   };
 
   const handleToggleLabel = async (labelId: string) => {
@@ -279,6 +288,9 @@ export function TaskDetailDrawer() {
               </form>
             </div>
 
+            {/* Comments */}
+            {taskId && <TaskComments taskId={taskId} />}
+
             {/* Actions */}
             <div className="border-t pt-4 space-y-2">
               <div className="flex gap-2">
@@ -308,6 +320,33 @@ export function TaskDetailDrawer() {
                   </PopoverContent>
                 </Popover>
               </div>
+
+              {/* Reminder */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full gap-1.5">
+                    <Bell className="h-3.5 w-3.5" />
+                    Set reminder
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-2" align="end">
+                  <div className="space-y-1">
+                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleSetReminder(addHours(new Date(), 1))}>
+                      In 1 hour
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleSetReminder(addHours(new Date(), 3))}>
+                      In 3 hours
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleSetReminder(addDays(new Date(), 1))}>
+                      Tomorrow morning
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleSetReminder(addWeeks(new Date(), 1))}>
+                      Next week
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+
               <Button variant="destructive" size="sm" className="w-full gap-1.5" onClick={handleDelete}>
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete task

@@ -13,10 +13,13 @@ import NotFound from "./pages/NotFound";
 import InboxPage from "./pages/Inbox";
 import TodayPage from "./pages/Today";
 import UpcomingPage from "./pages/Upcoming";
+import OverduePage from "./pages/Overdue";
+import CompletedPage from "./pages/Completed";
 import ProjectPage from "./pages/Project";
 import DashboardPage from "./pages/Dashboard";
 import SettingsPage from "./pages/Settings";
 import LabelFilterPage from "./pages/LabelFilter";
+import SavedFilterPage from "./pages/SavedFilter";
 
 const queryClient = new QueryClient();
 
@@ -43,8 +46,11 @@ const App = () => (
               <Route path="inbox" element={<InboxPage />} />
               <Route path="today" element={<TodayPage />} />
               <Route path="upcoming" element={<UpcomingPage />} />
+              <Route path="overdue" element={<OverduePage />} />
+              <Route path="completed" element={<CompletedPage />} />
               <Route path="project/:projectId" element={<ProjectPage />} />
               <Route path="label/:labelId" element={<LabelFilterPage />} />
+              <Route path="filter/:filterId" element={<SavedFilterPage />} />
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>

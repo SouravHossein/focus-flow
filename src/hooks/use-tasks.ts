@@ -14,6 +14,8 @@ export function useTasks(options?: {
   inboxOnly?: boolean;
   dueToday?: boolean;
   dueUpcoming?: boolean;
+  dueOverdue?: boolean;
+  completedOnly?: boolean;
   includeCompleted?: boolean;
 }) {
   const { user } = useAuth();
@@ -40,7 +42,9 @@ export function useTasks(options?: {
       if (options?.inboxOnly) {
         query = query.is('project_id', null);
       }
-      if (!options?.includeCompleted) {
+      if (options?.completedOnly) {
+        query = query.not('completed_at', 'is', null);
+      } else if (!options?.includeCompleted) {
         query = query.is('completed_at', null);
       }
       if (options?.dueToday) {
@@ -56,6 +60,10 @@ export function useTasks(options?: {
         const nextWeek = new Date(today);
         nextWeek.setDate(nextWeek.getDate() + 7);
         query = query.gte('due_date', today.toISOString()).lte('due_date', nextWeek.toISOString());
+      }
+      if (options?.dueOverdue) {
+        const now = new Date().toISOString();
+        query = query.lt('due_date', now).is('completed_at', null);
       }
 
       // Filter out snoozed tasks (unless they're past snooze time)

@@ -1,7 +1,8 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjects } from '@/hooks/use-projects';
 import { useLabels } from '@/hooks/use-labels';
+import { useSavedFilters, useDeleteSavedFilter } from '@/hooks/use-saved-filters';
 import { useUIStore } from '@/stores/ui-store';
 import {
   Sidebar,
@@ -21,27 +22,33 @@ import { Button } from '@/components/ui/button';
 import {
   Inbox, CalendarDays, CalendarRange, FolderOpen, Tag, Plus,
   Settings, LogOut, Search, CheckSquare, BarChart3,
+  AlertTriangle, CheckCircle2, Filter, Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
 import { CreateProjectDialog } from '@/components/projects/CreateProjectDialog';
 import { CreateLabelDialog } from '@/components/labels/CreateLabelDialog';
+import { FilterBuilderDialog } from '@/components/filters/FilterBuilderDialog';
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const { signOut, profile } = useAuth();
+  const { signOut } = useAuth();
   const { data: projects } = useProjects();
   const { data: labels } = useLabels();
+  const { data: savedFilters } = useSavedFilters();
+  const deleteFilter = useDeleteSavedFilter();
   const setSearchOpen = useUIStore((s) => s.setSearchOpen);
   const setQuickAddOpen = useUIStore((s) => s.setQuickAddOpen);
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [labelDialogOpen, setLabelDialogOpen] = useState(false);
-  const navigate = useNavigate();
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
 
   const mainNavItems = [
     { title: 'Inbox', url: '/app/inbox', icon: Inbox },
     { title: 'Today', url: '/app/today', icon: CalendarDays },
     { title: 'Upcoming', url: '/app/upcoming', icon: CalendarRange },
+    { title: 'Overdue', url: '/app/overdue', icon: AlertTriangle },
+    { title: 'Completed', url: '/app/completed', icon: CheckCircle2 },
   ];
 
   return (
@@ -165,6 +172,49 @@ export function AppSidebar() {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+
+          {/* Saved Filters */}
+          <SidebarGroup>
+            <SidebarGroupLabel className="flex items-center justify-between">
+              <span>Filters</span>
+              {!collapsed && (
+                <button onClick={() => setFilterDialogOpen(true)} className="text-muted-foreground hover:text-foreground">
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {savedFilters?.map((f) => (
+                  <SidebarMenuItem key={f.id}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={`/app/filter/${f.id}`}
+                        className="hover:bg-accent/50 group"
+                        activeClassName="bg-accent text-accent-foreground font-medium"
+                      >
+                        <Filter className="mr-2 h-3.5 w-3.5" />
+                        {!collapsed && (
+                          <>
+                            <span className="truncate flex-1">{f.name}</span>
+                            <button
+                              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteFilter.mutate(f.id); }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+                {(!savedFilters || savedFilters.length === 0) && !collapsed && (
+                  <p className="px-3 py-2 text-xs text-muted-foreground">No saved filters</p>
+                )}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         </SidebarContent>
 
         <SidebarFooter className="p-3 space-y-1">
@@ -197,6 +247,7 @@ export function AppSidebar() {
 
       <CreateProjectDialog open={projectDialogOpen} onOpenChange={setProjectDialogOpen} />
       <CreateLabelDialog open={labelDialogOpen} onOpenChange={setLabelDialogOpen} />
+      <FilterBuilderDialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen} />
     </>
   );
 }
