@@ -5,6 +5,8 @@ import { QuickAddDialog } from '@/components/tasks/QuickAddDialog';
 import { TaskDetailDrawer } from '@/components/tasks/TaskDetailDrawer';
 import { SearchDialog } from '@/components/search/SearchDialog';
 import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow';
+import { ReminderBell } from '@/components/reminders/ReminderBell';
+import { PomodoroTimer } from '@/components/productivity/PomodoroTimer';
 import { useUIStore } from '@/stores/ui-store';
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus } from 'lucide-react';
@@ -22,7 +24,9 @@ function applyTheme(theme: string) {
 
 export function AppLayout() {
   const setQuickAddOpen = useUIStore((s) => s.setQuickAddOpen);
-  const { profile, refreshProfile } = useAuth();
+  const setTaskDetailId = useUIStore((s) => s.setTaskDetailId);
+  const setSearchOpen = useUIStore((s) => s.setSearchOpen);
+  const { profile } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Apply theme from profile on mount
@@ -51,14 +55,26 @@ export function AppLayout() {
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'q' && !e.metaKey && !e.ctrlKey && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+      const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+
+      // Escape closes drawers/dialogs
+      if (e.key === 'Escape') {
+        setTaskDetailId(null);
+        setSearchOpen(false);
+        setQuickAddOpen(false);
+        return;
+      }
+
+      if (isInput) return;
+
+      if (e.key === 'q' && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         setQuickAddOpen(true);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [setQuickAddOpen]);
+  }, [setQuickAddOpen, setTaskDetailId, setSearchOpen]);
 
   if (showOnboarding) {
     return <OnboardingFlow onComplete={() => setShowOnboarding(false)} />;
@@ -69,8 +85,12 @@ export function AppLayout() {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="sticky top-0 z-30 flex h-12 items-center border-b bg-background/80 backdrop-blur-sm px-4">
+          <header className="sticky top-0 z-30 flex h-12 items-center justify-between border-b bg-background/80 backdrop-blur-sm px-4">
             <SidebarTrigger className="mr-2" />
+            <div className="flex items-center gap-1">
+              <PomodoroTimer />
+              <ReminderBell />
+            </div>
           </header>
           <main className="flex-1 overflow-y-auto">
             <Outlet />

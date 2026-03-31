@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
-import { Download } from 'lucide-react';
+import { Download, Trash2 } from 'lucide-react';
 
 export default function SettingsPage() {
   const { user, profile, signOut, refreshProfile } = useAuth();
@@ -87,6 +88,18 @@ export default function SettingsPage() {
     }
 
     toast({ title: `Data exported as ${format.toUpperCase()}` });
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    // Delete user data (tasks, projects, labels, profile) then sign out
+    await supabase.from('tasks').delete().eq('user_id', user.id);
+    await supabase.from('projects').delete().eq('user_id', user.id);
+    await supabase.from('labels').delete().eq('user_id', user.id);
+    await supabase.from('saved_filters').delete().eq('user_id', user.id);
+    await supabase.from('profiles').delete().eq('id', user.id);
+    toast({ title: 'Account data deleted' });
+    await signOut();
   };
 
   return (
@@ -178,9 +191,31 @@ export default function SettingsPage() {
               <span className="text-sm text-muted-foreground">Email</span>
               <span className="text-sm">{user?.email}</span>
             </div>
-            <Button variant="destructive" size="sm" onClick={signOut} className="w-full">
+            <Button variant="outline" size="sm" onClick={signOut} className="w-full">
               Sign out
             </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="w-full gap-1.5">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete account
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete all your tasks, projects, labels, and settings. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Delete everything
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
 
