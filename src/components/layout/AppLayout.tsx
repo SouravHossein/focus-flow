@@ -83,7 +83,7 @@ export function AppLayout() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [setQuickAddOpen, setTaskDetailId, setSearchOpen]);
+  }, [setQuickAddOpen, setTaskDetailId, setSearchOpen, openPreSession]);
 
   if (showOnboarding) {
     return <OnboardingFlow onComplete={() => setShowOnboarding(false)} />;
