@@ -7,6 +7,7 @@ import { useUIStore } from '@/stores/ui-store';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { GripVertical, Repeat } from 'lucide-react';
+import { QuickStartFocus } from '@/components/focus/QuickStartFocus';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Tables } from '@/integrations/supabase/types';
