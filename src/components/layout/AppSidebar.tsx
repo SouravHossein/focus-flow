@@ -23,6 +23,7 @@ import {
   Inbox, CalendarDays, CalendarRange, FolderOpen, Tag, Plus,
   Settings, LogOut, Search, CheckSquare, BarChart3,
   AlertTriangle, CheckCircle2, Filter, Trash2,
+  Mountain, Compass,
 } from 'lucide-react';
 import { useState } from 'react';
 import { CreateProjectDialog } from '@/components/projects/CreateProjectDialog';
@@ -219,6 +220,22 @@ export function AppSidebar() {
 
         <SidebarFooter className="p-3 space-y-1">
           <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <NavLink to="/app/focus" className="hover:bg-accent/50" activeClassName="bg-accent text-accent-foreground font-medium">
+                  <Mountain className="mr-2 h-4 w-4" />
+                  {!collapsed && <span>Focus</span>}
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <NavLink to="/app/journey" className="hover:bg-accent/50" activeClassName="bg-accent text-accent-foreground font-medium">
+                  <Compass className="mr-2 h-4 w-4" />
+                  {!collapsed && <span>Journey</span>}
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <NavLink to="/app/dashboard" className="hover:bg-accent/50" activeClassName="bg-accent text-accent-foreground font-medium">

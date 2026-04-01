@@ -7,6 +7,9 @@ import { SearchDialog } from '@/components/search/SearchDialog';
 import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow';
 import { ReminderBell } from '@/components/reminders/ReminderBell';
 import { PomodoroTimer } from '@/components/productivity/PomodoroTimer';
+import { FocusScreen } from '@/components/focus/FocusScreen';
+import { FocusPreSession } from '@/components/focus/FocusPreSession';
+import { useFocusStore } from '@/stores/focus-store';
 import { useUIStore } from '@/stores/ui-store';
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus } from 'lucide-react';
@@ -26,6 +29,8 @@ export function AppLayout() {
   const setQuickAddOpen = useUIStore((s) => s.setQuickAddOpen);
   const setTaskDetailId = useUIStore((s) => s.setTaskDetailId);
   const setSearchOpen = useUIStore((s) => s.setSearchOpen);
+  const focusPhase = useFocusStore((s) => s.phase);
+  const openPreSession = useFocusStore((s) => s.openPreSession);
   const { profile } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -71,10 +76,14 @@ export function AppLayout() {
         e.preventDefault();
         setQuickAddOpen(true);
       }
+      if (e.key === 'f' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        openPreSession();
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [setQuickAddOpen, setTaskDetailId, setSearchOpen]);
+  }, [setQuickAddOpen, setTaskDetailId, setSearchOpen, openPreSession]);
 
   if (showOnboarding) {
     return <OnboardingFlow onComplete={() => setShowOnboarding(false)} />;
@@ -110,6 +119,8 @@ export function AppLayout() {
       <QuickAddDialog />
       <TaskDetailDrawer />
       <SearchDialog />
+      <FocusPreSession />
+      {focusPhase !== 'idle' && <FocusScreen />}
     </SidebarProvider>
   );
 }
