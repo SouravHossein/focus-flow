@@ -14,6 +14,107 @@ export type Database = {
   }
   public: {
     Tables: {
+      focus_sessions: {
+        Row: {
+          ambient_sound: string | null
+          break_minutes: number
+          completed: boolean
+          created_at: string
+          duration_seconds: number
+          ended_at: string | null
+          focus_minutes: number
+          id: string
+          notes: string | null
+          session_tag: string | null
+          session_type: string
+          started_at: string
+          strict_mode: boolean
+          task_id: string | null
+          user_id: string
+        }
+        Insert: {
+          ambient_sound?: string | null
+          break_minutes?: number
+          completed?: boolean
+          created_at?: string
+          duration_seconds?: number
+          ended_at?: string | null
+          focus_minutes?: number
+          id?: string
+          notes?: string | null
+          session_tag?: string | null
+          session_type?: string
+          started_at?: string
+          strict_mode?: boolean
+          task_id?: string | null
+          user_id: string
+        }
+        Update: {
+          ambient_sound?: string | null
+          break_minutes?: number
+          completed?: boolean
+          created_at?: string
+          duration_seconds?: number
+          ended_at?: string | null
+          focus_minutes?: number
+          id?: string
+          notes?: string | null
+          session_tag?: string | null
+          session_type?: string
+          started_at?: string
+          strict_mode?: boolean
+          task_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "focus_sessions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_progress: {
+        Row: {
+          badges: Json
+          best_streak: number
+          current_tier: string
+          id: string
+          last_focus_date: string | null
+          streak_days: number
+          total_altitude: number
+          total_focus_minutes: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          badges?: Json
+          best_streak?: number
+          current_tier?: string
+          id?: string
+          last_focus_date?: string | null
+          streak_days?: number
+          total_altitude?: number
+          total_focus_minutes?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          badges?: Json
+          best_streak?: number
+          current_tier?: string
+          id?: string
+          last_focus_date?: string | null
+          streak_days?: number
+          total_altitude?: number
+          total_focus_minutes?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       labels: {
         Row: {
           color: string
@@ -40,11 +141,16 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ambient_sound_preference: string | null
           avatar_url: string | null
+          break_default_minutes: number
+          companion_style: string
           created_at: string
+          daily_focus_goal: number
           date_format: string
           default_priority: number
           display_name: string | null
+          focus_default_minutes: number
           id: string
           onboarding_completed: boolean
           theme_preference: string
@@ -52,11 +158,16 @@ export type Database = {
           week_start: number
         }
         Insert: {
+          ambient_sound_preference?: string | null
           avatar_url?: string | null
+          break_default_minutes?: number
+          companion_style?: string
           created_at?: string
+          daily_focus_goal?: number
           date_format?: string
           default_priority?: number
           display_name?: string | null
+          focus_default_minutes?: number
           id: string
           onboarding_completed?: boolean
           theme_preference?: string
@@ -64,11 +175,16 @@ export type Database = {
           week_start?: number
         }
         Update: {
+          ambient_sound_preference?: string | null
           avatar_url?: string | null
+          break_default_minutes?: number
+          companion_style?: string
           created_at?: string
+          daily_focus_goal?: number
           date_format?: string
           default_priority?: number
           display_name?: string | null
+          focus_default_minutes?: number
           id?: string
           onboarding_completed?: boolean
           theme_preference?: string
