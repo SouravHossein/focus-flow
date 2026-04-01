@@ -12,6 +12,8 @@ import { format } from 'date-fns';
 import { useUIStore } from '@/stores/ui-store';
 import { CalendarIcon, Flag, FolderOpen, Send } from 'lucide-react';
 
+const INBOX_PROJECT_VALUE = '__inbox__';
+
 export function QuickAddDialog() {
   const open = useUIStore((s) => s.quickAddOpen);
   const setOpen = useUIStore((s) => s.setQuickAddOpen);
@@ -85,13 +87,16 @@ export function QuickAddDialog() {
             </Select>
 
             {projects && projects.length > 0 && (
-              <Select value={projectId} onValueChange={setProjectId}>
+              <Select
+                value={projectId || INBOX_PROJECT_VALUE}
+                onValueChange={(value) => setProjectId(value === INBOX_PROJECT_VALUE ? '' : value)}
+              >
                 <SelectTrigger className="h-8 w-auto gap-1.5">
                   <FolderOpen className="h-3.5 w-3.5" />
                   <SelectValue placeholder="Project" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Inbox</SelectItem>
+                  <SelectItem value={INBOX_PROJECT_VALUE}>Inbox</SelectItem>
                   {projects.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       <span className="flex items-center gap-2">

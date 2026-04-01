@@ -25,6 +25,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { RECURRING_OPTIONS, getRecurringLabel, type RecurringPattern } from '@/utils/recurring';
 import type { Tables } from '@/integrations/supabase/types';
 
+const INBOX_PROJECT_VALUE = '__inbox__';
+
 export function TaskDetailDrawer() {
   const taskId = useUIStore((s) => s.taskDetailId);
   const setTaskDetailId = useUIStore((s) => s.setTaskDetailId);
@@ -216,12 +218,15 @@ export function TaskDetailDrawer() {
 
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Project</span>
-                <Select value={projectId} onValueChange={(v) => { setProjectId(v); }}>
+                <Select
+                  value={projectId || INBOX_PROJECT_VALUE}
+                  onValueChange={(value) => { setProjectId(value === INBOX_PROJECT_VALUE ? '' : value); }}
+                >
                   <SelectTrigger className="h-8 w-32">
                     <SelectValue placeholder="Inbox" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Inbox</SelectItem>
+                    <SelectItem value={INBOX_PROJECT_VALUE}>Inbox</SelectItem>
                     {projects?.map((p) => (
                       <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                     ))}

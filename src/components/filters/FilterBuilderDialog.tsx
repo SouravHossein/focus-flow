@@ -15,6 +15,8 @@ interface FilterBuilderDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const ANY_PROJECT_VALUE = '__any_project__';
+
 export function FilterBuilderDialog({ open, onOpenChange }: FilterBuilderDialogProps) {
   const { data: projects } = useProjects();
   const { data: labels } = useLabels();
@@ -66,10 +68,13 @@ export function FilterBuilderDialog({ open, onOpenChange }: FilterBuilderDialogP
 
           <div>
             <Label>Project</Label>
-            <Select value={projectId} onValueChange={setProjectId}>
+            <Select
+              value={projectId || ANY_PROJECT_VALUE}
+              onValueChange={(value) => setProjectId(value === ANY_PROJECT_VALUE ? '' : value)}
+            >
               <SelectTrigger className="mt-1"><SelectValue placeholder="Any project" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Any project</SelectItem>
+                <SelectItem value={ANY_PROJECT_VALUE}>Any project</SelectItem>
                 {projects?.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
               </SelectContent>
             </Select>
