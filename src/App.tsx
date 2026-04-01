@@ -20,6 +20,8 @@ import DashboardPage from "./pages/Dashboard";
 import SettingsPage from "./pages/Settings";
 import LabelFilterPage from "./pages/LabelFilter";
 import SavedFilterPage from "./pages/SavedFilter";
+import FocusPage from "./pages/Focus";
+import JourneyPage from "./pages/Journey";
 
 const queryClient = new QueryClient();
 
