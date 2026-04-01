@@ -29,6 +29,8 @@ export function AppLayout() {
   const setQuickAddOpen = useUIStore((s) => s.setQuickAddOpen);
   const setTaskDetailId = useUIStore((s) => s.setTaskDetailId);
   const setSearchOpen = useUIStore((s) => s.setSearchOpen);
+  const focusPhase = useFocusStore((s) => s.phase);
+  const openPreSession = useFocusStore((s) => s.openPreSession);
   const { profile } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
