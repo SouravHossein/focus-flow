@@ -76,6 +76,10 @@ export function AppLayout() {
         e.preventDefault();
         setQuickAddOpen(true);
       }
+      if (e.key === 'f' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        openPreSession();
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
