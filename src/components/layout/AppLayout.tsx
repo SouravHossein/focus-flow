@@ -119,6 +119,8 @@ export function AppLayout() {
       <QuickAddDialog />
       <TaskDetailDrawer />
       <SearchDialog />
+      <FocusPreSession />
+      {focusPhase !== 'idle' && <FocusScreen />}
     </SidebarProvider>
   );
 }

@@ -133,6 +133,13 @@ export function TaskItem({ task }: TaskItemProps) {
           ))}
         </div>
       </div>
+
+      {/* Quick start focus */}
+      {!isCompleted && (
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 self-center">
+          <QuickStartFocus taskId={task.id} taskTitle={task.title} />
+        </div>
+      )}
     </div>
   );
 }

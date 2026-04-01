@@ -54,6 +54,8 @@ const App = () => (
               <Route path="label/:labelId" element={<LabelFilterPage />} />
               <Route path="filter/:filterId" element={<SavedFilterPage />} />
               <Route path="dashboard" element={<DashboardPage />} />
+              <Route path="focus" element={<FocusPage />} />
+              <Route path="journey" element={<JourneyPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />

@@ -222,6 +222,22 @@ export function AppSidebar() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
+                <NavLink to="/app/focus" className="hover:bg-accent/50" activeClassName="bg-accent text-accent-foreground font-medium">
+                  <Mountain className="mr-2 h-4 w-4" />
+                  {!collapsed && <span>Focus</span>}
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <NavLink to="/app/journey" className="hover:bg-accent/50" activeClassName="bg-accent text-accent-foreground font-medium">
+                  <Compass className="mr-2 h-4 w-4" />
+                  {!collapsed && <span>Journey</span>}
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
                 <NavLink to="/app/dashboard" className="hover:bg-accent/50" activeClassName="bg-accent text-accent-foreground font-medium">
                   <BarChart3 className="mr-2 h-4 w-4" />
                   {!collapsed && <span>Dashboard</span>}
