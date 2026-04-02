@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useUpdateTask, useDeleteTask, useTasks, useDuplicateTask, useSnoozeTask } from '@/hooks/use-tasks';
 import { useProjects } from '@/hooks/use-projects';
 import { useLabels } from '@/hooks/use-labels';
 import { useAddTaskLabel, useRemoveTaskLabel } from '@/hooks/use-task-labels';
 import { useCreateReminder } from '@/hooks/use-reminders';
+import { useCreateTemplate } from '@/hooks/use-templates';
 import { useUIStore } from '@/stores/ui-store';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -16,10 +17,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { TaskCheckbox } from './TaskCheckbox';
 import { TaskList } from './TaskList';
 import { TaskComments } from './TaskComments';
+import { DependencySection } from './DependencySection';
+import { TimeBlockPicker } from './TimeBlockPicker';
+import { ClipboardDateBanner } from '@/components/intelligence/ClipboardDateBanner';
+import { useClipboardDateDetection } from '@/hooks/useClipboardDateDetection';
+import { useTimeBlocks, useCreateTimeBlock, useDeleteTimeBlock } from '@/hooks/useTimeBlocks';
 import { useToggleTask, useCreateTask } from '@/hooks/use-tasks';
 import { cn } from '@/lib/utils';
 import { format, addDays, addWeeks, addHours } from 'date-fns';
-import { CalendarIcon, Trash2, Plus, Copy, Clock, Repeat, Bell } from 'lucide-react';
+import { CalendarIcon, Trash2, Plus, Copy, Clock, Repeat, Bell, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { RECURRING_OPTIONS, getRecurringLabel, type RecurringPattern } from '@/utils/recurring';
@@ -37,12 +43,15 @@ export function TaskDetailDrawer() {
   const duplicateTask = useDuplicateTask();
   const snoozeTask = useSnoozeTask();
   const createReminder = useCreateReminder();
+  const createTemplate = useCreateTemplate();
   const { data: projects } = useProjects();
   const { data: labels } = useLabels();
   const { data: subtasks, isLoading: subtasksLoading } = useTasks({ parentTaskId: taskId || undefined });
   const addTaskLabel = useAddTaskLabel();
   const removeTaskLabel = useRemoveTaskLabel();
   const { toast } = useToast();
+  const clipboardDetection = useClipboardDateDetection();
+  const descRef = useRef<HTMLTextAreaElement>(null);
 
   const [task, setTask] = useState<any>(null);
   const [title, setTitle] = useState('');
@@ -53,6 +62,18 @@ export function TaskDetailDrawer() {
   const [newSubtask, setNewSubtask] = useState('');
   const [recurringPattern, setRecurringPattern] = useState<string>('none');
   const [taskLabels, setTaskLabels] = useState<string[]>([]);
+
+  // Time block
+  const createTimeBlock = useCreateTimeBlock();
+  const deleteTimeBlock = useDeleteTimeBlock();
+  const { data: taskTimeBlocks } = useTimeBlocks();
+  const currentBlock = (taskTimeBlocks || []).find((b) => b.task_id === taskId);
+
+  useEffect(() => {
+    if (descRef.current) {
+      return clipboardDetection.attachTo(descRef.current);
+    }
+  }, [taskId, clipboardDetection.attachTo]);
 
   useEffect(() => {
     if (!taskId) return;
@@ -143,6 +164,28 @@ export function TaskDetailDrawer() {
     setNewSubtask('');
   };
 
+  const handleSaveAsTemplate = async () => {
+    if (!task) return;
+    await createTemplate.mutateAsync({
+      name: task.title,
+      category: 'General',
+      template_data: {
+        title: task.title,
+        description: task.description || '',
+        priority: task.priority,
+        projectId: task.project_id,
+      },
+    });
+    toast({ title: 'Saved as template' });
+  };
+
+  const handleAcceptClipboardDate = () => {
+    const result = clipboardDetection.accept();
+    if (result) {
+      setDueDate(result.date);
+    }
+  };
+
   return (
     <Sheet open={!!taskId} onOpenChange={(open) => !open && setTaskDetailId(null)}>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto">
@@ -172,7 +215,17 @@ export function TaskDetailDrawer() {
               placeholder="Task title"
             />
 
+            {/* Clipboard date banner */}
+            {clipboardDetection.visible && clipboardDetection.detectedDate && (
+              <ClipboardDateBanner
+                detectedDate={clipboardDetection.detectedDate}
+                onAccept={handleAcceptClipboardDate}
+                onDismiss={clipboardDetection.dismiss}
+              />
+            )}
+
             <Textarea
+              ref={descRef}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               onBlur={handleSave}
@@ -252,6 +305,28 @@ export function TaskDetailDrawer() {
                 </Select>
               </div>
 
+              {/* Time Block */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5" />
+                  Time block
+                </span>
+                <TimeBlockPicker
+                  blockDate={currentBlock?.block_date}
+                  startTime={currentBlock?.start_time}
+                  endTime={currentBlock?.end_time}
+                  onSave={async (block) => {
+                    if (currentBlock) await deleteTimeBlock.mutateAsync(currentBlock.id);
+                    if (taskId) await createTimeBlock.mutateAsync({ task_id: taskId, ...block });
+                    toast({ title: 'Time block set' });
+                  }}
+                  onRemove={currentBlock ? async () => {
+                    await deleteTimeBlock.mutateAsync(currentBlock.id);
+                    toast({ title: 'Time block removed' });
+                  } : undefined}
+                />
+              </div>
+
               <Button variant="outline" size="sm" className="w-full" onClick={handleSave} disabled={updateTask.isPending}>
                 Save changes
               </Button>
@@ -275,6 +350,9 @@ export function TaskDetailDrawer() {
                 </div>
               </div>
             )}
+
+            {/* Dependencies */}
+            {taskId && <DependencySection taskId={taskId} />}
 
             {/* Subtasks */}
             <div className="border-t pt-4">
@@ -351,6 +429,12 @@ export function TaskDetailDrawer() {
                   </div>
                 </PopoverContent>
               </Popover>
+
+              {/* Save as template */}
+              <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={handleSaveAsTemplate}>
+                <FileText className="h-3.5 w-3.5" />
+                Save as template
+              </Button>
 
               <Button variant="destructive" size="sm" className="w-full gap-1.5" onClick={handleDelete}>
                 <Trash2 className="h-3.5 w-3.5" />

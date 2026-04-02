@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTasks } from '@/hooks/use-tasks';
 import { useProjects } from '@/hooks/use-projects';
@@ -10,9 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
-import { Download, Trash2 } from 'lucide-react';
+import { Download, Trash2, FileText } from 'lucide-react';
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
   const { user, profile, signOut, refreshProfile } = useAuth();
   const { data: allTasks } = useTasks({ includeCompleted: true });
   const { data: projects } = useProjects();
@@ -125,6 +127,19 @@ export default function SettingsPage() {
                 </SelectContent>
               </Select>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Templates</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-3">Create reusable task templates to speed up your workflow</p>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/app/settings/templates')}>
+              <FileText className="h-3.5 w-3.5" />
+              Manage templates
+            </Button>
           </CardContent>
         </Card>
 

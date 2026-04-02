@@ -22,6 +22,7 @@ import LabelFilterPage from "./pages/LabelFilter";
 import SavedFilterPage from "./pages/SavedFilter";
 import FocusPage from "./pages/Focus";
 import JourneyPage from "./pages/Journey";
+import TemplatesSettingsPage from "./pages/settings/TemplatesSettings";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,7 @@ const App = () => (
               <Route path="focus" element={<FocusPage />} />
               <Route path="journey" element={<JourneyPage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="settings/templates" element={<TemplatesSettingsPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

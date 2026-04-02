@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { TaskCheckbox } from './TaskCheckbox';
 import { DueDateBadge } from './DueDateBadge';
 import { PriorityIndicator } from './PriorityIndicator';
+import { DependencyBadge } from './DependencyBadge';
 import { useToggleTask, useUpdateTask } from '@/hooks/use-tasks';
 import { useUIStore } from '@/stores/ui-store';
 import { cn } from '@/lib/utils';
@@ -122,6 +123,7 @@ export function TaskItem({ task }: TaskItemProps) {
               <Repeat className="h-3 w-3" />
             </span>
           )}
+          <DependencyBadge taskId={task.id} />
           {task.task_labels?.map((tl) => (
             <span
               key={tl.label_id}

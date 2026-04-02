@@ -154,8 +154,11 @@ export type Database = {
           id: string
           onboarding_completed: boolean
           theme_preference: string
+          timeline_view_default: boolean
           updated_at: string
           week_start: number
+          working_hours_end: string
+          working_hours_start: string
         }
         Insert: {
           ambient_sound_preference?: string | null
@@ -171,8 +174,11 @@ export type Database = {
           id: string
           onboarding_completed?: boolean
           theme_preference?: string
+          timeline_view_default?: boolean
           updated_at?: string
           week_start?: number
+          working_hours_end?: string
+          working_hours_start?: string
         }
         Update: {
           ambient_sound_preference?: string | null
@@ -188,8 +194,11 @@ export type Database = {
           id?: string
           onboarding_completed?: boolean
           theme_preference?: string
+          timeline_view_default?: boolean
           updated_at?: string
           week_start?: number
+          working_hours_end?: string
+          working_hours_start?: string
         }
         Relationships: []
       }
@@ -358,6 +367,42 @@ export type Database = {
           },
         ]
       }
+      task_dependencies: {
+        Row: {
+          blocked_task_id: string
+          blocking_task_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_task_id: string
+          blocking_task_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_task_id?: string
+          blocking_task_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_dependencies_blocked_task_id_fkey"
+            columns: ["blocked_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_dependencies_blocking_task_id_fkey"
+            columns: ["blocking_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_labels: {
         Row: {
           label_id: string
@@ -387,6 +432,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      task_templates: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          name: string
+          template_data: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          name: string
+          template_data?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          name?: string
+          template_data?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       tasks: {
         Row: {
@@ -463,6 +538,44 @@ export type Database = {
             columns: ["section_id"]
             isOneToOne: false
             referencedRelation: "sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_blocks: {
+        Row: {
+          block_date: string
+          created_at: string
+          end_time: string
+          id: string
+          start_time: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          block_date: string
+          created_at?: string
+          end_time: string
+          id?: string
+          start_time: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          block_date?: string
+          created_at?: string
+          end_time?: string
+          id?: string
+          start_time?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_blocks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]
