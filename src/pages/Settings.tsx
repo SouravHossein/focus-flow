@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react';
 import { Download, Trash2, FileText } from 'lucide-react';
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
   const { user, profile, signOut, refreshProfile } = useAuth();
   const { data: allTasks } = useTasks({ includeCompleted: true });
   const { data: projects } = useProjects();
