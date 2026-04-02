@@ -58,6 +58,7 @@ const App = () => (
               <Route path="focus" element={<FocusPage />} />
               <Route path="journey" element={<JourneyPage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="settings/templates" element={<TemplatesSettingsPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
