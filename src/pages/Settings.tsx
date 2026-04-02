@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
-import { Download, Trash2 } from 'lucide-react';
+import { Download, Trash2, FileText } from 'lucide-react';
 
 export default function SettingsPage() {
   const { user, profile, signOut, refreshProfile } = useAuth();
