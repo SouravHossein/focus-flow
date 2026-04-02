@@ -132,6 +132,19 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle className="text-base">Templates</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-3">Create reusable task templates to speed up your workflow</p>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/app/settings/templates')}>
+              <FileText className="h-3.5 w-3.5" />
+              Manage templates
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle className="text-base">Date & Time</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
