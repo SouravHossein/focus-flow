@@ -11,7 +11,7 @@ export function useActivityFeed(entityId?: string) {
     queryKey: ['activity-feed', user?.id, entityId],
     queryFn: async ({ pageParam = 0 }) => {
       if (!user) return { data: [], nextPage: null };
-      let query = supabase
+      let query = (supabase as any)
         .from('activity_logs')
         .select('*')
         .eq('user_id', user.id)

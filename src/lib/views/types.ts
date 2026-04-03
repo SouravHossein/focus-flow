@@ -3,6 +3,7 @@ import type { ViewContext, ViewId } from './viewRegistry';
 
 export type Task = Tables<'tasks'> & {
   task_labels?: { label_id: string; labels: Tables<'labels'> }[];
+  start_date?: string | null;
 };
 
 export interface ViewProps {

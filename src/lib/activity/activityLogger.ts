@@ -22,7 +22,7 @@ export async function logActivity(
   metadata?: Record<string, any>
 ) {
   try {
-    await supabase.from('activity_logs').insert({
+    await (supabase as any).from('activity_logs').insert({
       user_id: userId,
       event_type: eventType,
       entity_type: entityType,

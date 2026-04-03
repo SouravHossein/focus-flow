@@ -11,7 +11,7 @@ export function useMyDayTasks() {
     queryKey: ['my-day-tasks', user?.id, today],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('my_day_tasks')
         .select('*, tasks(*, task_labels(label_id, labels(*)))')
         .eq('user_id', user.id)
@@ -31,7 +31,7 @@ export function useAddToMyDay() {
   return useMutation({
     mutationFn: async (taskId: string) => {
       if (!user) throw new Error('Not authenticated');
-      const { error } = await supabase.from('my_day_tasks').insert({
+      const { error } = await (supabase as any).from('my_day_tasks').insert({
         user_id: user.id,
         task_id: taskId,
         added_date: format(new Date(), 'yyyy-MM-dd'),
@@ -47,7 +47,7 @@ export function useRemoveFromMyDay() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('my_day_tasks').delete().eq('id', id);
+      const { error } = await (supabase as any).from('my_day_tasks').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-day-tasks'] }),
@@ -59,7 +59,7 @@ export function usePinMyDayTask() {
 
   return useMutation({
     mutationFn: async ({ id, pinned }: { id: string; pinned: boolean }) => {
-      const { error } = await supabase.from('my_day_tasks').update({ pinned }).eq('id', id);
+      const { error } = await (supabase as any).from('my_day_tasks').update({ pinned }).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-day-tasks'] }),
