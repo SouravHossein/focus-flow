@@ -124,8 +124,11 @@ export function useDeleteTask() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Fetch name for activity log
+      const { data: task } = await supabase.from('tasks').select('title, user_id').eq('id', id).single();
       const { error } = await supabase.from('tasks').delete().eq('id', id);
       if (error) throw error;
+      if (task) logActivity(task.user_id, 'task.deleted', 'task', id, task.title);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
   });
