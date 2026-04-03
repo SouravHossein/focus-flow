@@ -22,7 +22,7 @@ export function MyDayPage() {
   const setTaskDetailId = useUIStore((s) => s.setTaskDetailId);
   const [showSuggestions, setShowSuggestions] = useState(true);
 
-  const myDayTaskIds = useMemo(() => new Set((myDayData || []).map((d: any) => d.task_id as string)), [myDayData]);
+  const myDayTaskIds = useMemo<Set<string>>(() => new Set((myDayData || []).map((d: any) => String(d.task_id))), [myDayData]);
   const suggestions = useMemo(
     () => generateSuggestions(allTasks || [], myDayTaskIds),
     [allTasks, myDayTaskIds]
