@@ -45,6 +45,7 @@ export function AppSidebar() {
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
 
   const mainNavItems = [
+    { title: 'My Day', url: '/app/myday', icon: Sun },
     { title: 'Inbox', url: '/app/inbox', icon: Inbox },
     { title: 'Today', url: '/app/today', icon: CalendarDays },
     { title: 'Upcoming', url: '/app/upcoming', icon: CalendarRange },
