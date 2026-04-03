@@ -92,6 +92,9 @@ export function useCreateTask() {
         .select()
         .single();
       if (error) throw error;
+      if (user && data) {
+        logActivity(user.id, 'task.created', 'task', data.id, data.title);
+      }
       return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
