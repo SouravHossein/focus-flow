@@ -1,167 +1,148 @@
 
 
-# Task Intelligence Module — Full Implementation Plan
-
-## Overview
-Add 6 intelligent features to TaskFlow: NLP task input, AI-powered suggestions, clipboard date detection, task templates, task dependencies, and time blocking. Implementation in 4 batches.
-
----
+# Views & Layouts Module — Full Implementation Plan
 
 ## Database Changes (1 migration)
 
 **New tables:**
-- `task_templates` — id, user_id, name, category, template_data (JSONB), created_at, updated_at. RLS: user owns.
-- `task_dependencies` — id, blocking_task_id (uuid), blocked_task_id (uuid), created_at. RLS: user owns both tasks (join to tasks table).
-- `time_blocks` — id, task_id, user_id, block_date (date), start_time (time), end_time (time), created_at. RLS: user owns.
+- `activity_logs` — id, user_id, event_type, entity_type, entity_id, entity_name, metadata (JSONB), created_at. Indexes on user_id, entity_id, created_at DESC, event_type. RLS: user owns.
+- `my_day_tasks` — id, user_id, task_id, added_date (date), pinned (boolean, default false), sort_order (integer), created_at. RLS: user owns. Unique on (user_id, task_id, added_date).
+- `user_view_preferences` — id, user_id, context_type (text), context_id (text nullable), view_type (text), config (JSONB), updated_at. RLS: user owns. Unique on (user_id, context_type, context_id).
 
-**Profile additions:**
-- `working_hours_start` (time, default '09:00')
-- `working_hours_end` (time, default '18:00')
-- `timeline_view_default` (boolean, default false)
+**Tasks table addition:**
+- `start_date` (timestamptz, nullable) — needed for Gantt bar spans.
 
----
-
-## Batch 1: NLP Parser + Clipboard Date Detection (Pure Logic + UI)
-
-### 1. Natural Language Task Parser
-**`src/lib/nlp/parseTaskInput.ts`** — Pure TypeScript parser, no AI calls. Regex-based extraction:
-- Dates: "today", "tomorrow", "next Monday", "in 3 days", "on June 15", "06/15"
-- Times: "at 3pm", "at 15:00", "at 9:30am"
-- Recurrence: "every day", "daily", "every Monday", "every 2 weeks", "monthly"
-- Priority: `p1`–`p4`, `!1`–`!4`
-- Labels: `#labelname` (multiple)
-- Project: `in ProjectName` or `@projectname`
-- Returns `ParsedTaskInput` with extracted fields + cleaned title + token positions for highlighting
-
-**`src/components/intelligence/NLPTaskInput.tsx`** — Wraps the Input component:
-- Debounced parse on every keystroke (150ms)
-- Live preview bar below input showing detected tokens as color-coded chips (blue=date, green=label, orange=priority, purple=project, teal=recurrence)
-- On submit, strips tokens from title and populates task fields
-
-**Integration:** Replace the plain Input in `QuickAddDialog.tsx` with `NLPTaskInput`. Wire parsed fields into `handleSubmit`.
-
-### 2. Clipboard Date Detection
-**`src/lib/nlp/detectDatesInText.ts`** — Pure function scanning pasted text for date patterns (ISO, formatted, relative). Returns array of `DetectedDate` objects with confidence scores.
-
-**`src/hooks/useClipboardDateDetection.ts`** — Attaches paste listener, returns detected dates + confirmation state.
-
-**`src/components/intelligence/ClipboardDateBanner.tsx`** — Non-blocking inline banner: "We found a date: Friday, May 9 — Set as due date?" with Accept/Dismiss buttons.
-
-**Integration:** Add to `TaskDetailDrawer` description/notes fields.
+**New dependency:** `@tanstack/react-virtual`, `html-to-image`
 
 ---
 
-## Batch 2: AI Suggestions + Task Templates
+## Shared Infrastructure (Batch 1)
 
-### 3. AI-Powered Task Suggestions
-**`src/lib/intelligence/suggestionEngine.ts`** — Client-side engine that:
-- Queries recent tasks from React Query cache
-- Scores matches by title similarity (fuzzy), recency, day-of-week patterns
-- Returns top 5 ranked suggestions with reason strings
+### View Registry
+`src/lib/views/viewRegistry.ts` — Static registry defining 7 views (list, board, calendar, gantt, table, myday, activity) with id, label, icon name, supported contexts, and capability flags (dnd, bulk-select, column-config).
 
-**`src/hooks/useTaskSuggestions.ts`** — Debounced (300ms), returns suggestions array. Keyboard navigable.
+### View Preference Store
+`src/stores/view-preference-store.ts` — Zustand store that reads/writes `user_view_preferences` table. Exposes `getViewType(contextType, contextId)` and `setViewType(...)`.
 
-**`src/components/intelligence/TaskSuggestionDropdown.tsx`** — Dropdown below input showing suggestions with title, label chips, project badge, and "Why suggested?" tooltip. Arrow keys + Enter to select, Escape to dismiss.
+### View Switcher
+`src/components/views/ViewSwitcher.tsx` — Icon tab bar rendered in page headers. Shows available views for current context. Highlights active view. Tooltip per icon.
 
-**Integration:** Rendered inside `NLPTaskInput` when user is typing. Selecting a suggestion fills all fields.
+### View Router
+`src/components/views/ViewRouter.tsx` — Takes tasks + context, reads active view from preference store, renders the correct view component. Handles fade transition between views.
 
-### 4. Task Templates
-**Migration:** `task_templates` table.
-
-**`src/lib/templates/applyTemplate.ts`** — Resolves template JSONB into a CreateTaskInput, handles `{{placeholder}}` variables and due date offsets.
-
-**`src/components/templates/TemplatePickerModal.tsx`** — Triggered by typing `/` in QuickAdd. Search, category filter, template preview.
-
-**`src/components/templates/TemplateVariablePrompt.tsx`** — Dialog for filling `{{placeholder}}` values.
-
-**Settings > Templates page** — Full CRUD: create from scratch, edit, delete, duplicate, categorize. "Save as template" button added to `TaskDetailDrawer`.
-
-**`src/hooks/use-templates.ts`** — React Query CRUD hook for `task_templates` table.
+### Shared ViewProps interface
+All views receive: `tasks`, `context`, `onTaskCreate`, `onTaskUpdate`, `onTaskDelete`, `onTaskComplete`, `isLoading`, `project?`.
 
 ---
 
-## Batch 3: Task Dependencies
+## Board View (Batch 2)
 
-### 5. Dependencies (Block / Blocked-By)
-**Migration:** `task_dependencies` table with RLS joining through tasks table.
+- `src/components/views/board/BoardView.tsx` — Orchestrator
+- `src/components/views/board/BoardColumn.tsx` — Column with header, card list, add-task button
+- `src/components/views/board/BoardCard.tsx` — Task card with checkbox, title, priority dot, due date, labels, subtask count, dependency badge
+- `src/components/views/board/BoardToolbar.tsx` — Group toggle (status/priority), sort, collapse all
+- `src/lib/views/board/boardGrouping.ts` — Groups tasks into columns by section or priority
 
-**`src/lib/dependencies/dependencyValidator.ts`** — DFS-based circular dependency detection.
-
-**`src/hooks/useDependencies.ts`** — CRUD hook: add/remove dependencies, fetch blocked status.
-
-**`src/components/tasks/DependencySection.tsx`** — Inside `TaskDetailDrawer`: "Blocked by" and "Blocks" sections with task search + linked task chips.
-
-**`src/components/tasks/DependencyBadge.tsx`** — "Blocked" badge shown on `TaskItem` when task has unresolved blockers.
-
-**Task list updates:** Query dependencies alongside tasks, show blocked badge, dimmed styling for blocked tasks.
+DnD: Reuses `@dnd-kit/core` + `@dnd-kit/sortable` already installed. Cross-column drag updates section_id or priority. Within-column drag updates position.
 
 ---
 
-## Batch 4: Time Blocking
+## Calendar View (Batch 3)
 
-### 6. Time Blocking System
-**Migration:** `time_blocks` table + profile working hours columns.
-
-**`src/components/timeblocking/DailyTimeline.tsx`** — Hour grid (6am–11pm), renders time blocks as positioned cards. Drag-and-drop from unscheduled column onto timeline.
-
-**`src/components/timeblocking/TimeBlock.tsx`** — Draggable + resizable block on timeline.
-
-**`src/components/timeblocking/UnscheduledColumn.tsx`** — Lists today's tasks without time blocks.
-
-**`src/lib/timeblocking/autoScheduler.ts`** — "Plan My Day" algorithm: takes P1/P2 tasks, distributes across available slots respecting working hours.
-
-**`src/hooks/useTimeBlocks.ts`** — CRUD hook for time_blocks table.
-
-**`src/components/tasks/TimeBlockPicker.tsx`** — Inline time range picker in TaskDetailDrawer.
-
-**Today page update:** Toggle between "List view" and "Timeline view". Auto-schedule button.
-
-**Settings update:** Working hours (start/end) configuration.
+- `src/components/views/calendar/CalendarView.tsx` — Mode switcher (month/week)
+- `src/components/views/calendar/MonthGrid.tsx` — 7-column grid, task pills per day cell, overflow "+N more" popover, drag to reschedule due_date
+- `src/components/views/calendar/WeekGrid.tsx` — Hourly time grid for 7 days, time-block tasks as positioned blocks, all-day tasks at top, current-time indicator
+- `src/components/views/calendar/CalendarToolbar.tsx` — Month/week toggle, prev/next nav, "Today" button, color-by toggle
+- `src/lib/views/calendar/calendarLayout.ts` — Pixel positioning math for week view blocks
 
 ---
 
-## Technical Details
+## Gantt View (Batch 4)
 
-### New Files (~25)
-```text
-src/lib/nlp/parseTaskInput.ts
-src/lib/nlp/detectDatesInText.ts
-src/lib/intelligence/suggestionEngine.ts
-src/lib/templates/applyTemplate.ts
-src/lib/dependencies/dependencyValidator.ts
-src/lib/timeblocking/autoScheduler.ts
-src/components/intelligence/NLPTaskInput.tsx
-src/components/intelligence/TaskSuggestionDropdown.tsx
-src/components/intelligence/ClipboardDateBanner.tsx
-src/components/templates/TemplatePickerModal.tsx
-src/components/templates/TemplateVariablePrompt.tsx
-src/components/tasks/DependencySection.tsx
-src/components/tasks/DependencyBadge.tsx
-src/components/timeblocking/DailyTimeline.tsx
-src/components/timeblocking/TimeBlock.tsx
-src/components/timeblocking/UnscheduledColumn.tsx
-src/components/tasks/TimeBlockPicker.tsx
-src/hooks/useTaskSuggestions.ts
-src/hooks/useClipboardDateDetection.ts
-src/hooks/use-templates.ts
-src/hooks/useDependencies.ts
-src/hooks/useTimeBlocks.ts
-src/pages/settings/TemplatesSettings.tsx
-```
+- `src/components/views/gantt/GanttView.tsx` — Resizable split panel (left task list + right timeline)
+- `src/components/views/gantt/GanttLeftPanel.tsx` — Task names, expand/collapse subtasks
+- `src/components/views/gantt/GanttTimeline.tsx` — Horizontal scrollable timeline with date headers
+- `src/components/views/gantt/GanttBar.tsx` — Draggable/resizable task bar (start_date → due_date)
+- `src/components/views/gantt/GanttDependencyArrows.tsx` — SVG elbow connectors between dependent tasks
+- `src/components/views/gantt/GanttToolbar.tsx` — Zoom (day/week/month), scroll-to-today, export PNG
+- `src/lib/views/gantt/ganttLayout.ts` — Bar position calculations
+- `src/lib/views/gantt/criticalPath.ts` — Longest dependency chain algorithm
 
-### Modified Files (~8)
-- `src/components/tasks/QuickAddDialog.tsx` — NLP input, template trigger, suggestions
-- `src/components/tasks/TaskDetailDrawer.tsx` — clipboard detection, dependencies section, time block picker, save-as-template
-- `src/components/tasks/TaskItem.tsx` — dependency badge
-- `src/components/tasks/TaskList.tsx` — blocked task styling
-- `src/pages/Today.tsx` — timeline view toggle, auto-schedule
-- `src/pages/Settings.tsx` — templates link, working hours
-- `src/components/layout/AppSidebar.tsx` — "Blocked" smart view
-- `src/App.tsx` — template settings route
+Uses `react-resizable-panels` (already have the shadcn resizable component). Requires `html-to-image` for PNG export.
 
-### No New Dependencies
-All features use pure TypeScript logic + existing UI primitives (shadcn). Time blocking drag-and-drop reuses `@dnd-kit` already installed.
+---
 
-### DB Migration
-1 migration creating `task_templates`, `task_dependencies`, `time_blocks` tables with RLS + profile columns.
+## Table View (Batch 5)
+
+- `src/components/views/table/TableView.tsx` — Orchestrator with virtualized rows via `@tanstack/react-virtual`
+- `src/components/views/table/TableHeader.tsx` — Sortable, resizable column headers
+- `src/components/views/table/TableRow.tsx` — Row with inline-editable cells
+- `src/components/views/table/cells/` — TitleCell, PriorityCell, DueDateCell, ProjectCell, LabelsCell (each inline-editable)
+- `src/components/views/table/TableColumnPicker.tsx` — Show/hide columns panel
+- `src/components/views/table/TableBulkActionBar.tsx` — Multi-select actions bar
+- `src/lib/views/table/tableSorting.ts` — Multi-column sort comparator
+- `src/lib/views/table/tableGrouping.ts` — Group by project/priority/label/status
+- `src/hooks/views/useTableColumnConfig.ts` — Persists column order/width/visibility
+
+---
+
+## My Day View (Batch 6)
+
+- `src/components/views/myday/MyDayView.tsx` — Split: My Day list + Suggestions panel
+- `src/components/views/myday/MyDayList.tsx` — Draggable focus task list, completion counter
+- `src/components/views/myday/SuggestionsPanel.tsx` — 5 suggestion sections (overdue, due today, recent, high priority, recurring)
+- `src/lib/views/myday/myDaySuggestions.ts` — Ranking logic for suggestion sources
+- `src/hooks/views/useMyDay.ts` — CRUD hook for `my_day_tasks` table (add, remove, pin, reorder)
+- Auto-reset at midnight: tasks with `added_date < today` and `pinned = false` are excluded from queries.
+
+---
+
+## Activity Feed (Batch 7)
+
+- `src/components/views/activity/ActivityFeedView.tsx` — Full page, infinite scroll
+- `src/components/views/activity/ActivityEntry.tsx` — Single entry with icon, action sentence, timestamp, diff
+- `src/components/views/activity/ActivityFeedFilters.tsx` — Filter by event type, project, date range
+- `src/lib/activity/activityLogger.ts` — Service called from mutations: `logActivity(userId, eventType, entityType, entityId, entityName, metadata?)`
+- `src/lib/activity/activityFormatter.ts` — Converts raw log to human-readable sentence
+- `src/hooks/views/useActivityFeed.ts` — Paginated query with cursor
+- Integration: Hook `activityLogger` into existing task/project/label mutation hooks
+
+Activity tab added to TaskDetailDrawer showing per-task activity.
+
+---
+
+## Integration Points
+
+- **Project page**: Replace plain TaskList with ViewRouter. Add ViewSwitcher to header.
+- **Today page**: Add ViewSwitcher (list, board, calendar, table, timeline). Wrap with ViewRouter.
+- **Inbox/Upcoming/Overdue/Completed**: Add ViewSwitcher with applicable views.
+- **Sidebar**: Add "My Day" and "Activity" nav items.
+- **App.tsx**: Add `/app/myday` and `/app/activity` routes.
+- **AppLayout.tsx**: Add keyboard shortcuts 1-7 for view switching.
+- **TaskDetailDrawer**: Add Activity tab.
+
+---
+
+## Files Summary
+
+**New files (~40+):** View infrastructure (4), Board (5), Calendar (5), Gantt (8), Table (9), My Day (4), Activity (6), shared hooks/stores (4).
+
+**Modified files (~8):** Project.tsx, Today.tsx, Inbox.tsx, AppSidebar.tsx, App.tsx, AppLayout.tsx, TaskDetailDrawer.tsx, use-tasks.ts (add activity logging calls).
+
+**DB migration:** 1 migration creating `activity_logs`, `my_day_tasks`, `user_view_preferences` tables + `start_date` column on tasks.
+
+**New npm deps:** `@tanstack/react-virtual`, `html-to-image`
+
+---
+
+## Implementation Order
+
+1. Migration + npm deps + view registry + view switcher + view router
+2. Board view
+3. Calendar view
+4. Gantt view
+5. Table view
+6. My Day view
+7. Activity feed + logger integration
+8. Wire ViewSwitcher into all pages + keyboard shortcuts
 
