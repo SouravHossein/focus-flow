@@ -171,6 +171,9 @@ export function useToggleTask() {
         .select()
         .single();
       if (error) throw error;
+      if (user && data) {
+        logActivity(user.id, completed ? 'task.completed' : 'task.uncompleted', 'task', id, data.title);
+      }
       return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
