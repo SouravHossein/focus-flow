@@ -23,6 +23,8 @@ import SavedFilterPage from "./pages/SavedFilter";
 import FocusPage from "./pages/Focus";
 import JourneyPage from "./pages/Journey";
 import TemplatesSettingsPage from "./pages/settings/TemplatesSettings";
+import MyDayPage from "./pages/MyDay";
+import ActivityPage from "./pages/Activity";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +59,8 @@ const App = () => (
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="focus" element={<FocusPage />} />
               <Route path="journey" element={<JourneyPage />} />
+              <Route path="myday" element={<MyDayPage />} />
+              <Route path="activity" element={<ActivityPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="settings/templates" element={<TemplatesSettingsPage />} />
             </Route>

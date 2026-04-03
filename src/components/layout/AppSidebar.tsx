@@ -23,7 +23,7 @@ import {
   Inbox, CalendarDays, CalendarRange, FolderOpen, Tag, Plus,
   Settings, LogOut, Search, CheckSquare, BarChart3,
   AlertTriangle, CheckCircle2, Filter, Trash2,
-  Mountain, Compass,
+  Mountain, Compass, Sun, Activity,
 } from 'lucide-react';
 import { useState } from 'react';
 import { CreateProjectDialog } from '@/components/projects/CreateProjectDialog';
@@ -45,6 +45,7 @@ export function AppSidebar() {
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
 
   const mainNavItems = [
+    { title: 'My Day', url: '/app/myday', icon: Sun },
     { title: 'Inbox', url: '/app/inbox', icon: Inbox },
     { title: 'Today', url: '/app/today', icon: CalendarDays },
     { title: 'Upcoming', url: '/app/upcoming', icon: CalendarRange },
@@ -233,6 +234,14 @@ export function AppSidebar() {
                 <NavLink to="/app/journey" className="hover:bg-accent/50" activeClassName="bg-accent text-accent-foreground font-medium">
                   <Compass className="mr-2 h-4 w-4" />
                   {!collapsed && <span>Journey</span>}
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <NavLink to="/app/activity" className="hover:bg-accent/50" activeClassName="bg-accent text-accent-foreground font-medium">
+                  <Activity className="mr-2 h-4 w-4" />
+                  {!collapsed && <span>Activity</span>}
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>

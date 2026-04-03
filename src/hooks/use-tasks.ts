@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 import { getNextDueDate, type RecurringPattern } from '@/utils/recurring';
+import { logActivity } from '@/lib/activity/activityLogger';
 
 type Task = Tables<'tasks'>;
 type TaskInsert = TablesInsert<'tasks'>;
@@ -91,6 +92,9 @@ export function useCreateTask() {
         .select()
         .single();
       if (error) throw error;
+      if (user && data) {
+        logActivity(user.id, 'task.created', 'task', data.id, data.title);
+      }
       return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
@@ -120,8 +124,11 @@ export function useDeleteTask() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Fetch name for activity log
+      const { data: task } = await supabase.from('tasks').select('title, user_id').eq('id', id).single();
       const { error } = await supabase.from('tasks').delete().eq('id', id);
       if (error) throw error;
+      if (task) logActivity(task.user_id, 'task.deleted', 'task', id, task.title);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
   });
@@ -164,6 +171,9 @@ export function useToggleTask() {
         .select()
         .single();
       if (error) throw error;
+      if (user && data) {
+        logActivity(user.id, completed ? 'task.completed' : 'task.uncompleted', 'task', id, data.title);
+      }
       return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),

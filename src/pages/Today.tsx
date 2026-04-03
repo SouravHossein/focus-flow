@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { useTasks } from '@/hooks/use-tasks';
-import { TaskList } from '@/components/tasks/TaskList';
-import { DailyTimeline } from '@/components/timeblocking/DailyTimeline';
-import { Button } from '@/components/ui/button';
+import { useTasks, useUpdateTask, useDeleteTask, useToggleTask } from '@/hooks/use-tasks';
+import { ViewSwitcher } from '@/components/views/ViewSwitcher';
+import { ViewRouter } from '@/components/views/ViewRouter';
 import { format } from 'date-fns';
-import { List, Clock } from 'lucide-react';
 
 export default function TodayPage() {
   const { data: tasks, isLoading } = useTasks({ dueToday: true });
-  const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
+  const updateTask = useUpdateTask();
+  const deleteTask = useDeleteTask();
+  const toggleTask = useToggleTask();
 
   return (
     <div className="mx-auto max-w-3xl p-4 md:p-8">
@@ -17,38 +17,20 @@ export default function TodayPage() {
           <h1 className="text-xl font-bold text-foreground">Today</h1>
           <p className="text-sm text-muted-foreground">{format(new Date(), 'EEEE, MMMM d')}</p>
         </div>
-        <div className="flex gap-1 rounded-lg border p-0.5">
-          <Button
-            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-            size="sm"
-            className="h-7 gap-1 text-xs"
-            onClick={() => setViewMode('list')}
-          >
-            <List className="h-3.5 w-3.5" />
-            List
-          </Button>
-          <Button
-            variant={viewMode === 'timeline' ? 'secondary' : 'ghost'}
-            size="sm"
-            className="h-7 gap-1 text-xs"
-            onClick={() => setViewMode('timeline')}
-          >
-            <Clock className="h-3.5 w-3.5" />
-            Timeline
-          </Button>
-        </div>
+        <ViewSwitcher context="smart-view" contextId="today" />
       </div>
 
-      {viewMode === 'list' ? (
-        <TaskList
-          tasks={tasks}
-          loading={isLoading}
-          emptyTitle="All clear for today!"
-          emptyDescription="No tasks due today — enjoy your free time"
-        />
-      ) : (
-        <DailyTimeline date={new Date()} />
-      )}
+      <ViewRouter
+        tasks={tasks || []}
+        context="smart-view"
+        contextId="today"
+        onTaskUpdate={(id, data) => updateTask.mutate({ id, ...data })}
+        onTaskDelete={(id) => deleteTask.mutate(id)}
+        onTaskComplete={(id, completed) => toggleTask.mutate({ id, completed })}
+        isLoading={isLoading}
+        emptyTitle="All clear for today!"
+        emptyDescription="No tasks due today — enjoy your free time"
+      />
     </div>
   );
 }
