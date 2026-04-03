@@ -239,6 +239,14 @@ export function AppSidebar() {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
+                <NavLink to="/app/activity" className="hover:bg-accent/50" activeClassName="bg-accent text-accent-foreground font-medium">
+                  <Activity className="mr-2 h-4 w-4" />
+                  {!collapsed && <span>Activity</span>}
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
                 <NavLink to="/app/dashboard" className="hover:bg-accent/50" activeClassName="bg-accent text-accent-foreground font-medium">
                   <BarChart3 className="mr-2 h-4 w-4" />
                   {!collapsed && <span>Dashboard</span>}
