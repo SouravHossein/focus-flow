@@ -23,7 +23,7 @@ import {
   Inbox, CalendarDays, CalendarRange, FolderOpen, Tag, Plus,
   Settings, LogOut, Search, CheckSquare, BarChart3,
   AlertTriangle, CheckCircle2, Filter, Trash2,
-  Mountain, Compass,
+  Mountain, Compass, Sun, Activity,
 } from 'lucide-react';
 import { useState } from 'react';
 import { CreateProjectDialog } from '@/components/projects/CreateProjectDialog';
