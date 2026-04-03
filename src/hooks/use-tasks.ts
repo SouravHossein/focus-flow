@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 import { getNextDueDate, type RecurringPattern } from '@/utils/recurring';
+import { logActivity } from '@/lib/activity/activityLogger';
 
 type Task = Tables<'tasks'>;
 type TaskInsert = TablesInsert<'tasks'>;
