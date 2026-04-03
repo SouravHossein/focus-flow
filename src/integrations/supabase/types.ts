@@ -598,6 +598,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_view_preferences: {
+        Row: {
+          config: Json
+          context_id: string | null
+          context_type: string
+          id: string
+          updated_at: string
+          user_id: string
+          view_type: string
+        }
+        Insert: {
+          config?: Json
+          context_id?: string | null
+          context_type: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          view_type?: string
+        }
+        Update: {
+          config?: Json
+          context_id?: string | null
+          context_type?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          view_type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
