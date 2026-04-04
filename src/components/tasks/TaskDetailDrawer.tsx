@@ -100,9 +100,11 @@ export function TaskDetailDrawer() {
           setRecurringPattern('none');
         }
         setTaskLabels((data.task_labels as any[])?.map((tl: any) => tl.label_id) || []);
+        // Track recent visit
+        trackRecentItem({ id: data.id, type: 'task', name: data.title });
       }
     });
-  }, [taskId]);
+  }, [taskId, trackRecentItem]);
 
   const handleSave = async () => {
     if (!taskId) return;
