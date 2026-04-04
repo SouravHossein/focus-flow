@@ -25,10 +25,11 @@ import { useTimeBlocks, useCreateTimeBlock, useDeleteTimeBlock } from '@/hooks/u
 import { useToggleTask, useCreateTask } from '@/hooks/use-tasks';
 import { cn } from '@/lib/utils';
 import { format, addDays, addWeeks, addHours } from 'date-fns';
-import { CalendarIcon, Trash2, Plus, Copy, Clock, Repeat, Bell, FileText } from 'lucide-react';
+import { CalendarIcon, Trash2, Plus, Copy, Clock, Repeat, Bell, FileText, Pin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { RECURRING_OPTIONS, getRecurringLabel, type RecurringPattern } from '@/utils/recurring';
+import { useNavigationStore } from '@/stores/navigation-store';
 import type { Tables } from '@/integrations/supabase/types';
 
 const INBOX_PROJECT_VALUE = '__inbox__';
