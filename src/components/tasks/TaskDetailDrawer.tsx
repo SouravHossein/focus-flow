@@ -25,10 +25,11 @@ import { useTimeBlocks, useCreateTimeBlock, useDeleteTimeBlock } from '@/hooks/u
 import { useToggleTask, useCreateTask } from '@/hooks/use-tasks';
 import { cn } from '@/lib/utils';
 import { format, addDays, addWeeks, addHours } from 'date-fns';
-import { CalendarIcon, Trash2, Plus, Copy, Clock, Repeat, Bell, FileText } from 'lucide-react';
+import { CalendarIcon, Trash2, Plus, Copy, Clock, Repeat, Bell, FileText, Pin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { RECURRING_OPTIONS, getRecurringLabel, type RecurringPattern } from '@/utils/recurring';
+import { useNavigationStore } from '@/stores/navigation-store';
 import type { Tables } from '@/integrations/supabase/types';
 
 const INBOX_PROJECT_VALUE = '__inbox__';
@@ -52,6 +53,10 @@ export function TaskDetailDrawer() {
   const { toast } = useToast();
   const clipboardDetection = useClipboardDateDetection();
   const descRef = useRef<HTMLTextAreaElement>(null);
+  const trackRecentItem = useNavigationStore((s) => s.trackRecentItem);
+  const pinnedTaskIds = useNavigationStore((s) => s.pinnedTaskIds);
+  const togglePinTask = useNavigationStore((s) => s.togglePinTask);
+  const isPinned = taskId ? pinnedTaskIds.includes(taskId) : false;
 
   const [task, setTask] = useState<any>(null);
   const [title, setTitle] = useState('');
@@ -95,9 +100,11 @@ export function TaskDetailDrawer() {
           setRecurringPattern('none');
         }
         setTaskLabels((data.task_labels as any[])?.map((tl: any) => tl.label_id) || []);
+        // Track recent visit
+        trackRecentItem({ id: data.id, type: 'task', name: data.title });
       }
     });
-  }, [taskId]);
+  }, [taskId, trackRecentItem]);
 
   const handleSave = async () => {
     if (!taskId) return;
@@ -201,7 +208,18 @@ export function TaskDetailDrawer() {
                 }}
               />
             )}
-            <span className="text-base">Task details</span>
+            <span className="text-base flex-1">Task details</span>
+            {taskId && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("h-7 w-7", isPinned && "text-primary")}
+                onClick={() => togglePinTask(taskId)}
+                title={isPinned ? 'Unpin task' : 'Pin task'}
+              >
+                <Pin className="h-3.5 w-3.5" />
+              </Button>
+            )}
           </SheetTitle>
         </SheetHeader>
 
