@@ -4,6 +4,8 @@ import { useProjects } from '@/hooks/use-projects';
 import { useLabels } from '@/hooks/use-labels';
 import { useSavedFilters, useDeleteSavedFilter } from '@/hooks/use-saved-filters';
 import { useUIStore } from '@/stores/ui-store';
+import { PinnedItemsSection } from '@/components/sidebar/PinnedItemsSection';
+import { RecentItemsSection } from '@/components/sidebar/RecentItemsSection';
 import {
   Sidebar,
   SidebarContent,
