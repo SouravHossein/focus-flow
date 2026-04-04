@@ -53,6 +53,10 @@ export function TaskDetailDrawer() {
   const { toast } = useToast();
   const clipboardDetection = useClipboardDateDetection();
   const descRef = useRef<HTMLTextAreaElement>(null);
+  const trackRecentItem = useNavigationStore((s) => s.trackRecentItem);
+  const pinnedTaskIds = useNavigationStore((s) => s.pinnedTaskIds);
+  const togglePinTask = useNavigationStore((s) => s.togglePinTask);
+  const isPinned = taskId ? pinnedTaskIds.includes(taskId) : false;
 
   const [task, setTask] = useState<any>(null);
   const [title, setTitle] = useState('');
