@@ -1,148 +1,128 @@
 
 
-# Views & Layouts Module — Full Implementation Plan
+# Navigation & Discoverability Module
 
-## Database Changes (1 migration)
-
-**New tables:**
-- `activity_logs` — id, user_id, event_type, entity_type, entity_id, entity_name, metadata (JSONB), created_at. Indexes on user_id, entity_id, created_at DESC, event_type. RLS: user owns.
-- `my_day_tasks` — id, user_id, task_id, added_date (date), pinned (boolean, default false), sort_order (integer), created_at. RLS: user owns. Unique on (user_id, task_id, added_date).
-- `user_view_preferences` — id, user_id, context_type (text), context_id (text nullable), view_type (text), config (JSONB), updated_at. RLS: user owns. Unique on (user_id, context_type, context_id).
-
-**Tasks table addition:**
-- `start_date` (timestamptz, nullable) — needed for Gantt bar spans.
-
-**New dependency:** `@tanstack/react-virtual`, `html-to-image`
+## Overview
+Replace the basic SearchDialog with a full command palette, add breadcrumbs, recent items tracking, jump-mode keyboard navigation, pinned items, and a shortcut reference panel.
 
 ---
 
-## Shared Infrastructure (Batch 1)
+## No Database Changes Required
+All navigation state (recent items, pinned items, command history) stored client-side via Zustand + localStorage persistence. Pinned items use existing task/project data — just track IDs locally.
 
-### View Registry
-`src/lib/views/viewRegistry.ts` — Static registry defining 7 views (list, board, calendar, gantt, table, myday, activity) with id, label, icon name, supported contexts, and capability flags (dnd, bulk-select, column-config).
-
-### View Preference Store
-`src/stores/view-preference-store.ts` — Zustand store that reads/writes `user_view_preferences` table. Exposes `getViewType(contextType, contextId)` and `setViewType(...)`.
-
-### View Switcher
-`src/components/views/ViewSwitcher.tsx` — Icon tab bar rendered in page headers. Shows available views for current context. Highlights active view. Tooltip per icon.
-
-### View Router
-`src/components/views/ViewRouter.tsx` — Takes tasks + context, reads active view from preference store, renders the correct view component. Handles fade transition between views.
-
-### Shared ViewProps interface
-All views receive: `tasks`, `context`, `onTaskCreate`, `onTaskUpdate`, `onTaskDelete`, `onTaskComplete`, `isLoading`, `project?`.
+## New Dependency
+- `fuse.js` — client-side fuzzy search for command palette
 
 ---
 
-## Board View (Batch 2)
+## Feature 1: Command Palette (replaces SearchDialog)
 
-- `src/components/views/board/BoardView.tsx` — Orchestrator
-- `src/components/views/board/BoardColumn.tsx` — Column with header, card list, add-task button
-- `src/components/views/board/BoardCard.tsx` — Task card with checkbox, title, priority dot, due date, labels, subtask count, dependency badge
-- `src/components/views/board/BoardToolbar.tsx` — Group toggle (status/priority), sort, collapse all
-- `src/lib/views/board/boardGrouping.ts` — Groups tasks into columns by section or priority
+**Replace** `src/components/search/SearchDialog.tsx` with a full command palette.
 
-DnD: Reuses `@dnd-kit/core` + `@dnd-kit/sortable` already installed. Cross-column drag updates section_id or priority. Within-column drag updates position.
+**New files:**
+- `src/lib/commands/commandRegistry.ts` — Singleton registry. Actions register with `{ id, label, keywords[], icon, shortcut?, handler, category }`. Query method returns filtered/scored results.
+- `src/lib/commands/commandSearch.ts` — Fuse.js wrapper that searches across tasks, projects, labels, and registered actions. Scores by match quality + recency.
+- `src/components/command/CommandPalette.tsx` — Full-screen backdrop + centered modal (max-w-xl). Uses shadcn Command primitive (`cmdk`) already installed. Sections: Recent, Quick Actions, Navigation, search results.
+- `src/hooks/useCommandRegistry.ts` — Hook that registers/deregisters actions on mount/unmount. Used by pages to register context-specific actions.
 
----
+**Behavior:**
+- `Cmd+K` / `Ctrl+K` opens (already wired in SearchDialog — reuse)
+- Empty state: Recent items + Quick Actions (Create task, Go to Today, etc.)
+- Typing: fuzzy search across tasks (from Supabase), projects, labels, actions
+- Arrow keys navigate, Enter executes, Escape closes
+- Results show: icon + label + shortcut hint + secondary text
+- Track last 10 executed commands in `navigationStore`
 
-## Calendar View (Batch 3)
-
-- `src/components/views/calendar/CalendarView.tsx` — Mode switcher (month/week)
-- `src/components/views/calendar/MonthGrid.tsx` — 7-column grid, task pills per day cell, overflow "+N more" popover, drag to reschedule due_date
-- `src/components/views/calendar/WeekGrid.tsx` — Hourly time grid for 7 days, time-block tasks as positioned blocks, all-day tasks at top, current-time indicator
-- `src/components/views/calendar/CalendarToolbar.tsx` — Month/week toggle, prev/next nav, "Today" button, color-by toggle
-- `src/lib/views/calendar/calendarLayout.ts` — Pixel positioning math for week view blocks
-
----
-
-## Gantt View (Batch 4)
-
-- `src/components/views/gantt/GanttView.tsx` — Resizable split panel (left task list + right timeline)
-- `src/components/views/gantt/GanttLeftPanel.tsx` — Task names, expand/collapse subtasks
-- `src/components/views/gantt/GanttTimeline.tsx` — Horizontal scrollable timeline with date headers
-- `src/components/views/gantt/GanttBar.tsx` — Draggable/resizable task bar (start_date → due_date)
-- `src/components/views/gantt/GanttDependencyArrows.tsx` — SVG elbow connectors between dependent tasks
-- `src/components/views/gantt/GanttToolbar.tsx` — Zoom (day/week/month), scroll-to-today, export PNG
-- `src/lib/views/gantt/ganttLayout.ts` — Bar position calculations
-- `src/lib/views/gantt/criticalPath.ts` — Longest dependency chain algorithm
-
-Uses `react-resizable-panels` (already have the shadcn resizable component). Requires `html-to-image` for PNG export.
+**Modified:** `src/components/layout/AppLayout.tsx` — replace `<SearchDialog />` with `<CommandPalette />`
 
 ---
 
-## Table View (Batch 5)
+## Feature 2: Navigation State Store
 
-- `src/components/views/table/TableView.tsx` — Orchestrator with virtualized rows via `@tanstack/react-virtual`
-- `src/components/views/table/TableHeader.tsx` — Sortable, resizable column headers
-- `src/components/views/table/TableRow.tsx` — Row with inline-editable cells
-- `src/components/views/table/cells/` — TitleCell, PriorityCell, DueDateCell, ProjectCell, LabelsCell (each inline-editable)
-- `src/components/views/table/TableColumnPicker.tsx` — Show/hide columns panel
-- `src/components/views/table/TableBulkActionBar.tsx` — Multi-select actions bar
-- `src/lib/views/table/tableSorting.ts` — Multi-column sort comparator
-- `src/lib/views/table/tableGrouping.ts` — Group by project/priority/label/status
-- `src/hooks/views/useTableColumnConfig.ts` — Persists column order/width/visibility
+**New file:** `src/stores/navigation-store.ts` — Zustand with `persist` middleware:
+- `recentItems: RecentItem[]` (max 50, deduped, most recent first)
+- `pinnedTaskIds: string[]` (max 20)
+- `pinnedProjectIds: string[]` (max 10)
+- `recentCommands: string[]` (last 10 command IDs)
+- `trackRecentItem(item)`, `removeRecentItem(id)`, `togglePinTask(id)`, `togglePinProject(id)`
 
 ---
 
-## My Day View (Batch 6)
+## Feature 3: Recent Items in Sidebar
 
-- `src/components/views/myday/MyDayView.tsx` — Split: My Day list + Suggestions panel
-- `src/components/views/myday/MyDayList.tsx` — Draggable focus task list, completion counter
-- `src/components/views/myday/SuggestionsPanel.tsx` — 5 suggestion sections (overdue, due today, recent, high priority, recurring)
-- `src/lib/views/myday/myDaySuggestions.ts` — Ranking logic for suggestion sources
-- `src/hooks/views/useMyDay.ts` — CRUD hook for `my_day_tasks` table (add, remove, pin, reorder)
-- Auto-reset at midnight: tasks with `added_date < today` and `pinned = false` are excluded from queries.
+**New file:** `src/components/sidebar/RecentItemsSection.tsx` — Renders last 7 items from `navigationStore.recentItems`. Shows type icon + name + relative time. Collapsible, hidden when empty.
 
----
+**Modified:** `src/components/layout/AppSidebar.tsx` — Add `<RecentItemsSection />` between Smart Views and Projects sections.
 
-## Activity Feed (Batch 7)
-
-- `src/components/views/activity/ActivityFeedView.tsx` — Full page, infinite scroll
-- `src/components/views/activity/ActivityEntry.tsx` — Single entry with icon, action sentence, timestamp, diff
-- `src/components/views/activity/ActivityFeedFilters.tsx` — Filter by event type, project, date range
-- `src/lib/activity/activityLogger.ts` — Service called from mutations: `logActivity(userId, eventType, entityType, entityId, entityName, metadata?)`
-- `src/lib/activity/activityFormatter.ts` — Converts raw log to human-readable sentence
-- `src/hooks/views/useActivityFeed.ts` — Paginated query with cursor
-- Integration: Hook `activityLogger` into existing task/project/label mutation hooks
-
-Activity tab added to TaskDetailDrawer showing per-task activity.
+**Track events:** Call `trackRecentItem()` from:
+- `TaskDetailDrawer` open (track task)
+- Project page mount (track project)
+- Label page mount (track label)
 
 ---
 
-## Integration Points
+## Feature 4: Pinned Items in Sidebar
 
-- **Project page**: Replace plain TaskList with ViewRouter. Add ViewSwitcher to header.
-- **Today page**: Add ViewSwitcher (list, board, calendar, table, timeline). Wrap with ViewRouter.
-- **Inbox/Upcoming/Overdue/Completed**: Add ViewSwitcher with applicable views.
-- **Sidebar**: Add "My Day" and "Activity" nav items.
-- **App.tsx**: Add `/app/myday` and `/app/activity` routes.
-- **AppLayout.tsx**: Add keyboard shortcuts 1-7 for view switching.
-- **TaskDetailDrawer**: Add Activity tab.
+**New file:** `src/components/sidebar/PinnedItemsSection.tsx` — Shows pinned projects then pinned tasks from navigation store. Pin icon indicator. Click navigates. Collapsible, hidden when empty.
+
+**Modified:** `src/components/layout/AppSidebar.tsx` — Add `<PinnedItemsSection />` above Recent section.
+
+**Pin gestures:** Add pin toggle to TaskDetailDrawer header and project context (command palette action).
 
 ---
 
-## Files Summary
+## Feature 5: Breadcrumbs
 
-**New files (~40+):** View infrastructure (4), Board (5), Calendar (5), Gantt (8), Table (9), My Day (4), Activity (6), shared hooks/stores (4).
+**New file:** `src/components/navigation/Breadcrumbs.tsx` — Reads current route via `useLocation` + `useParams`. Resolves crumb trail from route pattern:
+- `/app/inbox` → Home › Inbox
+- `/app/project/:id` → Home › [Project Name]
+- `/app/settings/templates` → Home › Settings › Templates
 
-**Modified files (~8):** Project.tsx, Today.tsx, Inbox.tsx, AppSidebar.tsx, App.tsx, AppLayout.tsx, TaskDetailDrawer.tsx, use-tasks.ts (add activity logging calls).
+Uses project/label names from React Query cache. Truncates to last 3 crumbs on mobile with ellipsis dropdown.
 
-**DB migration:** 1 migration creating `activity_logs`, `my_day_tasks`, `user_view_preferences` tables + `start_date` column on tasks.
+**Modified:** `src/components/layout/AppLayout.tsx` — Add `<Breadcrumbs />` in header between SidebarTrigger and right actions.
 
-**New npm deps:** `@tanstack/react-virtual`, `html-to-image`
+---
+
+## Feature 6: Jump Mode (G-sequences)
+
+**New file:** `src/hooks/useJumpMode.ts` — Listens for `G` keypress, enters jump mode with 1500ms timeout. Second key navigates: I→inbox, T→today, U→upcoming, D→dashboard, M→myday, A→activity, S→settings, 1-9→project by index.
+
+**New file:** `src/components/navigation/JumpModeHUD.tsx` — Fixed bottom pill showing available jump targets during jump mode. Fades in/out.
+
+**New file:** `src/components/navigation/ShortcutReferenceModal.tsx` — Triggered by `?` key. Lists all shortcuts grouped by category. Searchable.
+
+**Modified:** `src/components/layout/AppLayout.tsx` — Mount `<JumpModeHUD />` and `<ShortcutReferenceModal />`. Add `?` and `G` to keyboard handler (only when not in text input).
 
 ---
 
 ## Implementation Order
+1. Navigation store (foundation for everything)
+2. Command palette (replaces SearchDialog, install fuse.js)
+3. Breadcrumbs (header integration)
+4. Recent items section (sidebar + tracking)
+5. Pinned items section (sidebar + toggle UI)
+6. Jump mode + shortcut reference
 
-1. Migration + npm deps + view registry + view switcher + view router
-2. Board view
-3. Calendar view
-4. Gantt view
-5. Table view
-6. My Day view
-7. Activity feed + logger integration
-8. Wire ViewSwitcher into all pages + keyboard shortcuts
+## Files Summary
+
+**New (~10):**
+- `src/stores/navigation-store.ts`
+- `src/lib/commands/commandRegistry.ts`
+- `src/lib/commands/commandSearch.ts`
+- `src/components/command/CommandPalette.tsx`
+- `src/hooks/useCommandRegistry.ts`
+- `src/components/sidebar/RecentItemsSection.tsx`
+- `src/components/sidebar/PinnedItemsSection.tsx`
+- `src/components/navigation/Breadcrumbs.tsx`
+- `src/hooks/useJumpMode.ts`
+- `src/components/navigation/JumpModeHUD.tsx`
+- `src/components/navigation/ShortcutReferenceModal.tsx`
+
+**Modified (~5):**
+- `src/components/layout/AppLayout.tsx` — command palette, breadcrumbs, jump mode, shortcut ref
+- `src/components/layout/AppSidebar.tsx` — pinned + recent sections
+- `src/components/tasks/TaskDetailDrawer.tsx` — track recent + pin toggle
+- `src/pages/Project.tsx` — track recent project visit
+- `src/pages/LabelFilter.tsx` — track recent label visit
 
