@@ -1,11 +1,12 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useLabels, useDeleteLabel } from '@/hooks/use-labels';
 import { useTasks } from '@/hooks/use-tasks';
 import { TaskList } from '@/components/tasks/TaskList';
 import { Button } from '@/components/ui/button';
 import { Tag, Trash2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigationStore } from '@/stores/navigation-store';
 
 export default function LabelFilterPage() {
   const { labelId } = useParams();
