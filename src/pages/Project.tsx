@@ -1,4 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useNavigationStore } from '@/stores/navigation-store';
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask, useToggleTask } from '@/hooks/use-tasks';
 import { useProjects, useDeleteProject, useUpdateProject } from '@/hooks/use-projects';
 import { useSections, useCreateSection, useDeleteSection } from '@/hooks/use-sections';
