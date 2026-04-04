@@ -3,7 +3,10 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { QuickAddDialog } from '@/components/tasks/QuickAddDialog';
 import { TaskDetailDrawer } from '@/components/tasks/TaskDetailDrawer';
-import { SearchDialog } from '@/components/search/SearchDialog';
+import { CommandPalette } from '@/components/command/CommandPalette';
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
+import { JumpModeHUD } from '@/components/navigation/JumpModeHUD';
+import { ShortcutReferenceModal } from '@/components/navigation/ShortcutReferenceModal';
 import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow';
 import { ReminderBell } from '@/components/reminders/ReminderBell';
 import { PomodoroTimer } from '@/components/productivity/PomodoroTimer';
@@ -12,6 +15,7 @@ import { FocusPreSession } from '@/components/focus/FocusPreSession';
 import { useFocusStore } from '@/stores/focus-store';
 import { useUIStore } from '@/stores/ui-store';
 import { useAuth } from '@/contexts/AuthContext';
+import { useJumpMode } from '@/hooks/useJumpMode';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
@@ -33,6 +37,9 @@ export function AppLayout() {
   const openPreSession = useFocusStore((s) => s.openPreSession);
   const { profile } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Initialize jump mode
+  useJumpMode();
 
   // Apply theme from profile on mount
   useEffect(() => {
@@ -95,7 +102,10 @@ export function AppLayout() {
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <header className="sticky top-0 z-30 flex h-12 items-center justify-between border-b bg-background/80 backdrop-blur-sm px-4">
-            <SidebarTrigger className="mr-2" />
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="mr-1" />
+              <Breadcrumbs />
+            </div>
             <div className="flex items-center gap-1">
               <PomodoroTimer />
               <ReminderBell />
@@ -118,8 +128,10 @@ export function AppLayout() {
 
       <QuickAddDialog />
       <TaskDetailDrawer />
-      <SearchDialog />
+      <CommandPalette />
       <FocusPreSession />
+      <JumpModeHUD />
+      <ShortcutReferenceModal />
       {focusPhase !== 'idle' && <FocusScreen />}
     </SidebarProvider>
   );

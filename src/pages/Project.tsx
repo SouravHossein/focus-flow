@@ -34,6 +34,13 @@ export default function ProjectPage() {
   const { toast } = useToast();
 
   const project = projects?.find((p) => p.id === projectId);
+  const trackRecentItem = useNavigationStore((s) => s.trackRecentItem);
+
+  useEffect(() => {
+    if (project) {
+      trackRecentItem({ id: project.id, type: 'project', name: project.name, icon: project.color });
+    }
+  }, [project?.id, project?.name, trackRecentItem]);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();

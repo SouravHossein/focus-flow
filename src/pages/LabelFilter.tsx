@@ -17,6 +17,13 @@ export default function LabelFilterPage() {
   const { toast } = useToast();
 
   const label = labels?.find((l) => l.id === labelId);
+  const trackRecentItem = useNavigationStore((s) => s.trackRecentItem);
+
+  useEffect(() => {
+    if (label) {
+      trackRecentItem({ id: label.id, type: 'label', name: label.name, icon: label.color });
+    }
+  }, [label?.id, label?.name, trackRecentItem]);
   const tasks = allTasks?.filter((t) =>
     t.task_labels?.some((tl) => tl.label_id === labelId)
   );

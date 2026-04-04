@@ -113,6 +113,9 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
 
+          <PinnedItemsSection />
+          <RecentItemsSection />
+
           <SidebarGroup>
             <SidebarGroupLabel className="flex items-center justify-between">
               <span>Projects</span>

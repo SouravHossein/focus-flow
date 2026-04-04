@@ -208,7 +208,18 @@ export function TaskDetailDrawer() {
                 }}
               />
             )}
-            <span className="text-base">Task details</span>
+            <span className="text-base flex-1">Task details</span>
+            {taskId && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("h-7 w-7", isPinned && "text-primary")}
+                onClick={() => togglePinTask(taskId)}
+                title={isPinned ? 'Unpin task' : 'Pin task'}
+              >
+                <Pin className="h-3.5 w-3.5" />
+              </Button>
+            )}
           </SheetTitle>
         </SheetHeader>
 
