@@ -25,6 +25,8 @@ import JourneyPage from "./pages/Journey";
 import TemplatesSettingsPage from "./pages/settings/TemplatesSettings";
 import MyDayPage from "./pages/MyDay";
 import ActivityPage from "./pages/Activity";
+import WorkspaceSettingsPage from "./pages/WorkspaceSettings";
+import InviteAcceptPage from "./pages/InviteAccept";
 
 const queryClient = new QueryClient();
 
