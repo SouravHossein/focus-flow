@@ -16,9 +16,11 @@ import { useFocusStore } from '@/stores/focus-store';
 import { useUIStore } from '@/stores/ui-store';
 import { useAuth } from '@/contexts/AuthContext';
 import { useJumpMode } from '@/hooks/useJumpMode';
+import { useWorkspaces, useAcceptInvitation } from '@/hooks/use-workspaces';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 function applyTheme(theme: string) {
   document.documentElement.classList.remove('dark');
