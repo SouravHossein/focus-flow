@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjects } from '@/hooks/use-projects';
 import { useLabels } from '@/hooks/use-labels';
+import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher';
 import { useSavedFilters, useDeleteSavedFilter } from '@/hooks/use-saved-filters';
 import { useUIStore } from '@/stores/ui-store';
 import { PinnedItemsSection } from '@/components/sidebar/PinnedItemsSection';
