@@ -59,13 +59,8 @@ export function AppSidebar() {
   return (
     <>
       <Sidebar collapsible="icon">
-        <SidebarHeader className="p-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <CheckSquare className="h-4 w-4" />
-            </div>
-            {!collapsed && <span className="text-base font-bold text-foreground">TaskFlow</span>}
-          </div>
+        <SidebarHeader className="p-2">
+          <WorkspaceSwitcher collapsed={collapsed} />
         </SidebarHeader>
 
         <SidebarContent>
