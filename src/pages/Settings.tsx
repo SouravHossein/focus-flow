@@ -132,6 +132,19 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle className="text-base">Workspace</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-3">Manage workspace members, invitations, and permissions</p>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/app/settings/workspace')}>
+              <Building2 className="h-3.5 w-3.5" />
+              Workspace settings
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle className="text-base">Templates</CardTitle>
           </CardHeader>
           <CardContent>
