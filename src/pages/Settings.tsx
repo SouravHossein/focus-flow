@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
-import { Download, Trash2, FileText } from 'lucide-react';
+import { Download, Trash2, FileText, Building2 } from 'lucide-react';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -127,6 +127,19 @@ export default function SettingsPage() {
                 </SelectContent>
               </Select>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Workspace</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-3">Manage workspace members, invitations, and permissions</p>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/app/settings/workspace')}>
+              <Building2 className="h-3.5 w-3.5" />
+              Workspace settings
+            </Button>
           </CardContent>
         </Card>
 

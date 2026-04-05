@@ -16,9 +16,11 @@ import { useFocusStore } from '@/stores/focus-store';
 import { useUIStore } from '@/stores/ui-store';
 import { useAuth } from '@/contexts/AuthContext';
 import { useJumpMode } from '@/hooks/useJumpMode';
+import { useWorkspaces, useAcceptInvitation } from '@/hooks/use-workspaces';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 function applyTheme(theme: string) {
   document.documentElement.classList.remove('dark');
@@ -36,7 +38,24 @@ export function AppLayout() {
   const focusPhase = useFocusStore((s) => s.phase);
   const openPreSession = useFocusStore((s) => s.openPreSession);
   const { profile } = useAuth();
+  const { toast } = useToast();
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Initialize workspaces
+  useWorkspaces();
+
+  // Handle pending invite token from auth flow
+  const acceptInvitation = useAcceptInvitation();
+  useEffect(() => {
+    const pendingToken = sessionStorage.getItem('pendingInviteToken');
+    if (pendingToken) {
+      sessionStorage.removeItem('pendingInviteToken');
+      acceptInvitation.mutate(pendingToken, {
+        onSuccess: () => toast({ title: 'Successfully joined workspace!' }),
+        onError: (err) => toast({ title: 'Could not join workspace', description: err.message, variant: 'destructive' }),
+      });
+    }
+  }, []);
 
   // Initialize jump mode
   useJumpMode();

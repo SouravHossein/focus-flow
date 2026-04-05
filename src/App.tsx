@@ -25,6 +25,8 @@ import JourneyPage from "./pages/Journey";
 import TemplatesSettingsPage from "./pages/settings/TemplatesSettings";
 import MyDayPage from "./pages/MyDay";
 import ActivityPage from "./pages/Activity";
+import WorkspaceSettingsPage from "./pages/WorkspaceSettings";
+import InviteAcceptPage from "./pages/InviteAccept";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +41,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/invite/:token" element={<InviteAcceptPage />} />
             <Route
               path="/app"
               element={
@@ -63,6 +66,7 @@ const App = () => (
               <Route path="activity" element={<ActivityPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="settings/templates" element={<TemplatesSettingsPage />} />
+              <Route path="settings/workspace" element={<WorkspaceSettingsPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
