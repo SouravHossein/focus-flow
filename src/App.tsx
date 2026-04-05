@@ -66,6 +66,7 @@ const App = () => (
               <Route path="activity" element={<ActivityPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="settings/templates" element={<TemplatesSettingsPage />} />
+              <Route path="settings/workspace" element={<WorkspaceSettingsPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
