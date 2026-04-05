@@ -38,7 +38,24 @@ export function AppLayout() {
   const focusPhase = useFocusStore((s) => s.phase);
   const openPreSession = useFocusStore((s) => s.openPreSession);
   const { profile } = useAuth();
+  const { toast } = useToast();
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Initialize workspaces
+  useWorkspaces();
+
+  // Handle pending invite token from auth flow
+  const acceptInvitation = useAcceptInvitation();
+  useEffect(() => {
+    const pendingToken = sessionStorage.getItem('pendingInviteToken');
+    if (pendingToken) {
+      sessionStorage.removeItem('pendingInviteToken');
+      acceptInvitation.mutate(pendingToken, {
+        onSuccess: () => toast({ title: 'Successfully joined workspace!' }),
+        onError: (err) => toast({ title: 'Could not join workspace', description: err.message, variant: 'destructive' }),
+      });
+    }
+  }, []);
 
   // Initialize jump mode
   useJumpMode();
